@@ -16,6 +16,7 @@ const uint8_t anode1 = 3;
 const uint8_t anode2 = 4;
 
 const unsigned char pinPirSensor = 0;
+const unsigned char pinPirSensorPlug = 1;
 
 const unsigned char pinBuzzer = A3;
 const unsigned char pinDot = 8;
@@ -44,7 +45,6 @@ float brightnessG = 0;
 float brightnessB = 0;
 
 bool beepOnHour = false;
-bool usePIRSensor = false;
 bool pressed = false;
 bool HoursMode12 = false;
 bool showDate = false;
@@ -55,6 +55,7 @@ const int tubeBrightnessMAX = 5;
 bool sleep = false;
 bool countDownMode = false;
 bool spinChangingNumbers = true;
+bool activateAnimation = false;
 
 int iterationsInMenu = 0;
 int iterationsButtonPressed = 0;
@@ -111,14 +112,14 @@ enum Menu
 
     DotSetup        = 7,
     BeepSetup       = 8,
-    PIRSensorMode   = 9,
 
-    TubeBrightness  = 10,
-    SlotMachine     = 11,
+    TubeBrightness  = 9,
+    SlotMachine     = 10,
     SpinChangingNumbers,
 
     HourModeSetup,
     DateMode,
+    AnimateColorsMode,
 
     HoursSetup,
     MinutesSetup,
@@ -141,6 +142,44 @@ void Beep(int size)
     digitalWrite(pinBuzzer, LOW);
 }
 
+void RestoreBacklight()
+{
+    if (!activateAnimation)
+    {
+        analogWrite(pinledR, brightnessR);
+        analogWrite(pinledB, brightnessB);
+        analogWrite(pinledG, brightnessG);
+    }
+}
+
+void AnimateColors()
+{
+    const int seconds = now.second();
+    const int brightness = (seconds % 10) * 10;
+
+    int colorToAnimate = (seconds / 10) % 3;
+
+    switch (colorToAnimate)
+    {
+    case 0:
+        analogWrite(pinledR, brightness);
+        analogWrite(pinledB, 0);
+        analogWrite(pinledG, 0);
+
+    break;
+    case 1:
+        analogWrite(pinledR, 0);
+        analogWrite(pinledB, brightness);
+        analogWrite(pinledG, 0);
+    break;
+    case 2:
+        analogWrite(pinledR, 0);
+        analogWrite(pinledB, 0);
+        analogWrite(pinledG, brightness);
+    break;
+    }
+}
+
 void shift5812PJ(uint8_t dataByte)
 {
     for (uint8_t i = 0; i < 8; i++)
@@ -159,7 +198,12 @@ void shift5812PJ(uint8_t dataByte)
         PORTC |= 1 << 1; // digitalWrite(pinCLK, HIGH);
         PORTC &= ~(1 << 1); // digitalWrite(pinCLK, LOW);
     }
-} 
+}
+
+bool PIRSensorIsPlugged()
+{
+    return ((PIND & (1 << pinPirSensorPlug)) == 0);
+}
 
 unsigned int writeTwoNumbers(unsigned char left, unsigned char right, unsigned char anode)
 {
@@ -315,8 +359,6 @@ void ReadSettings()
         tubeBrightness = 1;
     }
 
-    usePIRSensor = EEPROM.read(PIRSensorMode);
-
     slotMachineFrequency = EEPROM.read(SlotMachine);
 
     if (slotMachineFrequency > slotMachineFrequencyMAX)
@@ -332,6 +374,8 @@ void ReadSettings()
     {
         currentFormat = DateFormat::MMDDYY;
     }
+
+    activateAnimation = EEPROM.read(AnimateColorsMode);
 
     HoursMode12 = EEPROM.read(HourModeSetup);
     sleepHourStart = EEPROM.read(SleepStart);
@@ -397,13 +441,12 @@ void setup()
     rtc.begin();
 
     pinMode(pinPirSensor, INPUT_PULLUP);
+    pinMode(pinPirSensorPlug, INPUT_PULLUP);
 
     SpinAllNumbers(60);
     ReadSettings();
 
-    analogWrite(pinledR, brightnessR);
-    analogWrite(pinledB, brightnessB);
-    analogWrite(pinledG, brightnessG);
+    RestoreBacklight();
 
     // Start IR receiver.
     irrcv.enableIRIn();
@@ -477,12 +520,6 @@ void ProcessEncoderChange(bool decrease)
             EEPROM.write(menu, beepOnHour);
             break;
         }
-    case PIRSensorMode:
-        {
-            usePIRSensor = !usePIRSensor;
-            EEPROM.write(menu, usePIRSensor);
-            break;
-        }
     case TubeBrightness:
         {
             tubeBrightness += (decrease ? 1 : -1);
@@ -503,6 +540,12 @@ void ProcessEncoderChange(bool decrease)
         {
             spinChangingNumbers = !spinChangingNumbers;
             EEPROM.write(menu, spinChangingNumbers);
+            break;
+        }
+    case AnimateColorsMode:
+        {
+            activateAnimation = !activateAnimation;
+            EEPROM.write(menu, activateAnimation);
             break;
         }
     case DateMode:
@@ -667,7 +710,7 @@ void CheckAlarm()
 bool TimeToSleep()
 {
     unsigned char hours = now.hour();
-    
+
     if (sleepHourStart > sleepHourEnd)
     {
         // If sleep period exceeds one day (22:00 - 7:00)
@@ -684,7 +727,7 @@ bool TimeToSleep()
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -858,9 +901,6 @@ void ProcessMenu()
     case BeepSetup:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : beepOnHour);
         break;
-    case PIRSensorMode:
-        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : usePIRSensor);
-        break;
     case TubeBrightness:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : tubeBrightness);
         break;
@@ -869,6 +909,9 @@ void ProcessMenu()
         break;
     case SpinChangingNumbers:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : spinChangingNumbers);
+        break;
+    case AnimateColorsMode:
+        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : activateAnimation);
         break;
     case DateMode:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : currentFormat);
@@ -924,6 +967,7 @@ void ProcessButton()
         iterationsButtonPressed = 0;
         iterationsInMenu = 0;
         pressed = false;
+        RestoreBacklight();
         Beep(50);
 
         if (++menu == MENU_MAX)
@@ -941,6 +985,7 @@ void ReadEncoder()
     if ((!encoder_A) && (encoder_A_prev))
     {
         sleep = false;
+        RestoreBacklight();
         fireAlarm = false;
         iterationsButtonPressed = 0;
         iterationsInMenu = 0;
@@ -956,6 +1001,7 @@ void ReadIRCommand()
   if (irrcv.decode(&res))
   {
     sleep = false;
+    RestoreBacklight();
 
     switch (res.value)
     {
@@ -967,7 +1013,7 @@ void ReadIRCommand()
         break;
       // Plus
   //    case 0xF7807F:
-      
+
       case 0x937BB355:
       case 0xCED4C7A9:
       {
@@ -1016,7 +1062,7 @@ void ReadIRCommand()
             }
           }
 
-          menuToggled = !menuToggled;          
+          menuToggled = !menuToggled;
           break;
         }
       default:
@@ -1031,14 +1077,27 @@ void ReadIRCommand()
 
 void ReadPirSensor()
 {
-    static long iterationPIRSensor = 0;
+    static bool sensorPlugged = false;
 
-    if (iterationPIRSensor < 0)
+    bool state = PIRSensorIsPlugged();
+
+    if (state != sensorPlugged)
     {
-        iterationPIRSensor = 0;
+        Beep(50);
+        sleep = false;
+        RestoreBacklight();
+    }
 
-        if (usePIRSensor)
+    sensorPlugged = state;
+
+    if (sensorPlugged)
+    {
+        static long iterationPIRSensor = 0;
+
+        if (iterationPIRSensor < 0)
         {
+            iterationPIRSensor = 0;
+
             if (digitalRead(pinPirSensor) == LOW)
             {
                 sleep = true;
@@ -1046,12 +1105,13 @@ void ReadPirSensor()
             else
             {
                 sleep = false;
-                iterationPIRSensor = 20000;
+                RestoreBacklight();
+                iterationPIRSensor = 30000;
             }
         }
+
+        iterationPIRSensor--;
     }
-    
-    iterationPIRSensor--;
 }
 
 void loop()
@@ -1076,10 +1136,17 @@ void loop()
     {
         pressed = false;
         DimmDot();
+        analogWrite(pinledR, 0);
+        analogWrite(pinledB, 0);
+        analogWrite(pinledG, 0);
         return;
     }
 
     SetDot();
+    if (activateAnimation)
+    {
+        AnimateColors();
+    }
 
     if (menu != MENU_NONE)
     {
