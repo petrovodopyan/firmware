@@ -116,10 +116,10 @@ enum Menu
     TubeBrightness  = 9,
     SlotMachine     = 10,
     SpinChangingNumbers,
+    AnimateColorsMode,
 
     HourModeSetup,
     DateMode,
-    AnimateColorsMode,
 
     HoursSetup,
     MinutesSetup,
@@ -156,27 +156,25 @@ void AnimateColors()
 {
     const int seconds = now.second();
     const int brightness = (seconds % 10) * 10;
+    const int negativeBrightness = (10 - (seconds % 10)) * 10;
 
-    int colorToAnimate = (seconds / 10) % 3;
-
-    switch (colorToAnimate)
+    if (seconds >= 0 && seconds < 20)
     {
-    case 0:
-        analogWrite(pinledR, brightness);
+        analogWrite(pinledR, (seconds >= 10) ? negativeBrightness : brightness);
         analogWrite(pinledB, 0);
         analogWrite(pinledG, 0);
-
-    break;
-    case 1:
+    }
+    else if (seconds >= 20 && seconds < 40)
+    {
         analogWrite(pinledR, 0);
-        analogWrite(pinledB, brightness);
+        analogWrite(pinledB, (seconds >= 30) ? negativeBrightness : brightness);
         analogWrite(pinledG, 0);
-    break;
-    case 2:
+    }
+    else
+    {
         analogWrite(pinledR, 0);
         analogWrite(pinledB, 0);
-        analogWrite(pinledG, brightness);
-    break;
+        analogWrite(pinledG, (seconds >= 50) ? negativeBrightness : brightness);
     }
 }
 
@@ -211,7 +209,7 @@ unsigned int writeTwoNumbers(unsigned char left, unsigned char right, unsigned c
     unsigned char byte2 = 0xFF;
     unsigned char byte3 = 0xFF;
 
-    if (left > 0 && left <=8)
+    if (left > 0 && left <= 8)
     {
         byte1 &= ~(1 << (left - 1));
     }
@@ -268,7 +266,7 @@ void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t thr
     unsigned char lowerThird = three % 10;
     unsigned char upperThird = three - lowerThird;
 
-    if (upperThird >= 10 ) upperThird = upperThird / 10;
+    if (upperThird >= 10) upperThird = upperThird / 10;
     if (upperSecond >= 10) upperSecond = upperSecond / 10;
     if (upperFirst >= 10) upperFirst = upperFirst / 10;
 
@@ -287,24 +285,24 @@ void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t thr
 
     //SetDot();
     static uint8_t  s_upperFirst = 0,
-                    s_lowerFirst = 0,
-                    s_upperSecond = 0,
-                    s_lowerSecond = 0,
-                    s_upperThird = 0,
-                    s_lowerThird = 0;
+        s_lowerFirst = 0,
+        s_upperSecond = 0,
+        s_lowerSecond = 0,
+        s_upperThird = 0,
+        s_lowerThird = 0;
 
     if (spining && s_lowerThird != lowerThird)
     {
         for (int i = 0; i < 10; ++i)
         {
-            int numbers[6] =    {
-                                    (s_upperFirst != upperFirst) ? ((upperFirst + i) % 10): upperFirst,
-                                    (s_lowerFirst != lowerFirst) ? ((lowerFirst + i) % 10): lowerFirst,
-                                    (s_upperSecond != upperSecond) ? ((upperSecond + i) % 10): upperSecond,
-                                    (s_lowerSecond != lowerSecond) ? ((lowerSecond + i) % 10): lowerSecond,
-                                    (s_upperThird != upperThird) ? ((upperThird + i) % 10): upperThird,
-                                    (s_lowerThird != lowerThird) ? ((lowerThird + i) % 10): lowerThird
-                                };
+            int numbers[6] = {
+                (s_upperFirst != upperFirst) ? ((upperFirst + i) % 10) : upperFirst,
+                (s_lowerFirst != lowerFirst) ? ((lowerFirst + i) % 10) : lowerFirst,
+                (s_upperSecond != upperSecond) ? ((upperSecond + i) % 10) : upperSecond,
+                (s_lowerSecond != lowerSecond) ? ((lowerSecond + i) % 10) : lowerSecond,
+                (s_upperThird != upperThird) ? ((upperThird + i) % 10) : upperThird,
+                (s_lowerThird != lowerThird) ? ((lowerThird + i) % 10) : lowerThird
+            };
 
             for (int j = 0; j < spinningTime; ++j)
             {
@@ -335,6 +333,30 @@ void SpinAllNumbers(unsigned char spinTimes = 5)
             DisplayNumbers(i, i, i, i, i, i);
         }
     }
+}
+
+void TestColorChanel(int chanelPin)
+{
+    for (int i = 0; i < brightnessMAX; ++i)
+    {
+        analogWrite(chanelPin, i);
+        delay(3);
+    }
+    for (int i = brightnessMAX; i > 0; --i)
+    {
+        analogWrite(chanelPin, i);
+        delay(3);
+    }
+    analogWrite(chanelPin, 0);
+}
+
+void RunSelfTesting()
+{
+    TestColorChanel(pinledR);
+    TestColorChanel(pinledB);
+    TestColorChanel(pinledG);
+
+    SpinAllNumbers(60);
 }
 
 void ReadSettings()
@@ -443,7 +465,10 @@ void setup()
     pinMode(pinPirSensor, INPUT_PULLUP);
     pinMode(pinPirSensorPlug, INPUT_PULLUP);
 
-    SpinAllNumbers(60);
+    /// Start selftesting.
+    RunSelfTesting();
+    /// End selftesting.
+
     ReadSettings();
 
     RestoreBacklight();
@@ -478,217 +503,217 @@ void ProcessEncoderChange(bool decrease)
     switch (menu)
     {
     case BacklightRed:
-        {
-            SetChanelBrightness(decrease, brightnessR, pinledR);
-            EEPROM.write(menu, brightnessR);
-            break;
-        }
+    {
+        SetChanelBrightness(decrease, brightnessR, pinledR);
+        EEPROM.write(menu, brightnessR);
+        break;
+    }
     case BacklightBlue:
-        {
-            SetChanelBrightness(decrease, brightnessB, pinledB);
-            EEPROM.write(menu, brightnessB);
-            break;
-        }
+    {
+        SetChanelBrightness(decrease, brightnessB, pinledB);
+        EEPROM.write(menu, brightnessB);
+        break;
+    }
     case BacklightGreen:
-        {
-            SetChanelBrightness(decrease, brightnessG, pinledG);
-            EEPROM.write(menu, brightnessG);
-            break;
-        }
+    {
+        SetChanelBrightness(decrease, brightnessG, pinledG);
+        EEPROM.write(menu, brightnessG);
+        break;
+    }
     case DotSetup:
+    {
+        if (decrease)
         {
-            if (decrease)
+            if (++clockMode == MODE_MAX)
             {
-                if (++clockMode == MODE_MAX)
-                {
-                    clockMode = 0;
-                }
+                clockMode = 0;
             }
-            else
-            {
-                if (clockMode-- == 0)
-                {
-                    clockMode = MODE_MAX - 1;
-                }
-            }
-            EEPROM.write(menu, clockMode);
-            break;
         }
+        else
+        {
+            if (clockMode-- == 0)
+            {
+                clockMode = MODE_MAX - 1;
+            }
+        }
+        EEPROM.write(menu, clockMode);
+        break;
+    }
     case BeepSetup:
-        {
-            beepOnHour = !beepOnHour;
-            EEPROM.write(menu, beepOnHour);
-            break;
-        }
+    {
+        beepOnHour = !beepOnHour;
+        EEPROM.write(menu, beepOnHour);
+        break;
+    }
     case TubeBrightness:
-        {
-            tubeBrightness += (decrease ? 1 : -1);
-            tubeBrightness = (tubeBrightness < 1 ? tubeBrightnessMAX: tubeBrightness);
-            tubeBrightness = (tubeBrightness > tubeBrightnessMAX ? 1 : tubeBrightness);
-            EEPROM.write(menu, tubeBrightness);
-            break;
-        }
+    {
+        tubeBrightness += (decrease ? 1 : -1);
+        tubeBrightness = (tubeBrightness < 1 ? tubeBrightnessMAX : tubeBrightness);
+        tubeBrightness = (tubeBrightness > tubeBrightnessMAX ? 1 : tubeBrightness);
+        EEPROM.write(menu, tubeBrightness);
+        break;
+    }
     case SlotMachine:
-        {
-            slotMachineFrequency += (decrease ? 1 : -1);
-            slotMachineFrequency = (slotMachineFrequency < 1 ? : slotMachineFrequency);
-            slotMachineFrequency = (slotMachineFrequency > slotMachineFrequencyMAX ? 1 : slotMachineFrequency);
-            EEPROM.write(menu, slotMachineFrequency);
-            break;
-        }
+    {
+        slotMachineFrequency += (decrease ? 1 : -1);
+        slotMachineFrequency = (slotMachineFrequency < 1 ? : slotMachineFrequency);
+        slotMachineFrequency = (slotMachineFrequency > slotMachineFrequencyMAX ? 1 : slotMachineFrequency);
+        EEPROM.write(menu, slotMachineFrequency);
+        break;
+    }
     case SpinChangingNumbers:
-        {
-            spinChangingNumbers = !spinChangingNumbers;
-            EEPROM.write(menu, spinChangingNumbers);
-            break;
-        }
+    {
+        spinChangingNumbers = !spinChangingNumbers;
+        EEPROM.write(menu, spinChangingNumbers);
+        break;
+    }
     case AnimateColorsMode:
-        {
-            activateAnimation = !activateAnimation;
-            EEPROM.write(menu, activateAnimation);
-            break;
-        }
+    {
+        activateAnimation = !activateAnimation;
+        EEPROM.write(menu, activateAnimation);
+        break;
+    }
     case DateMode:
-        {
-            currentFormat += (decrease ? 1 : -1);
-            currentFormat = (currentFormat < 0 ? DateFormat::YYMMDD : currentFormat);
-            currentFormat = (currentFormat > DateFormat::YYMMDD ? DateFormat::DDMMYY : currentFormat);
-            EEPROM.write(menu, currentFormat);
-            break;
-        }
+    {
+        currentFormat += (decrease ? 1 : -1);
+        currentFormat = (currentFormat < 0 ? DateFormat::YYMMDD : currentFormat);
+        currentFormat = (currentFormat > DateFormat::YYMMDD ? DateFormat::DDMMYY : currentFormat);
+        EEPROM.write(menu, currentFormat);
+        break;
+    }
     case HourModeSetup:
-        {
-            HoursMode12 = !HoursMode12;
-            EEPROM.write(menu, HoursMode12);
-            break;
-        }
+    {
+        HoursMode12 = !HoursMode12;
+        EEPROM.write(menu, HoursMode12);
+        break;
+    }
     case MinutesSetup:
+    {
+        if (decrease)
         {
-            if (decrease)
+            if (++now.mm == 60)
             {
-                if (++now.mm == 60)
-                {
-                    now.mm = 0;
-                }
+                now.mm = 0;
             }
-            else
-            {
-                if (now.mm-- == 0)
-                    now.mm = 59;
-            }
-            rtc.adjust(now);
-            break;
         }
+        else
+        {
+            if (now.mm-- == 0)
+                now.mm = 59;
+        }
+        rtc.adjust(now);
+        break;
+    }
     case SecondsSetup:
+    {
+        if (decrease)
         {
-            if (decrease)
-            {
-                if (++now.ss == 60)
-                    now.ss = 0;
-            }
-            else
-            {
-                if (now.ss-- == 0)
-                    now.ss = 59;
-            }
-            rtc.adjust(now);
-            break;
+            if (++now.ss == 60)
+                now.ss = 0;
         }
+        else
+        {
+            if (now.ss-- == 0)
+                now.ss = 59;
+        }
+        rtc.adjust(now);
+        break;
+    }
     case HoursSetup:
+    {
+        if (decrease)
         {
-            if (decrease)
-            {
-                if (++now.hh == 24)
-                    now.hh = 0;
-            }
-            else
-            {
-                if (now.hh-- == 0)
-                    now.hh = 23;
-            }
-            rtc.adjust(now);
-            break;
+            if (++now.hh == 24)
+                now.hh = 0;
         }
+        else
+        {
+            if (now.hh-- == 0)
+                now.hh = 23;
+        }
+        rtc.adjust(now);
+        break;
+    }
     case YearSetup:
-        {
-            now.yOff += (decrease ? 1 : -1);
-            rtc.adjust(now);
-            break;
-        }
+    {
+        now.yOff += (decrease ? 1 : -1);
+        rtc.adjust(now);
+        break;
+    }
     case MonthSetup:
+    {
+        if (decrease)
         {
-            if (decrease)
-            {
-                if (++now.m == 13)
-                    now.m = 1;
-            }
-            else
-            {
-                if (now.m-- == 1)
-                    now.m = 12;
-            }
-            rtc.adjust(now);
-            break;
+            if (++now.m == 13)
+                now.m = 1;
         }
+        else
+        {
+            if (now.m-- == 1)
+                now.m = 12;
+        }
+        rtc.adjust(now);
+        break;
+    }
     case DaySetup:
+    {
+        if (decrease)
         {
-            if (decrease)
-            {
-                if (++now.d == 32)
-                    now.d = 1;
-            }
-            else
-            {
-                if (now.d-- == 1)
-                    now.d = 31;
-            }
+            if (++now.d == 32)
+                now.d = 1;
+        }
+        else
+        {
+            if (now.d-- == 1)
+                now.d = 31;
+        }
 
-            rtc.adjust(now);
-            break;
-        }
+        rtc.adjust(now);
+        break;
+    }
     case SleepStart:
-        {
-            sleepHourStart += (decrease ? 1 : -1);
-            sleepHourStart = (sleepHourStart < 0 ? 24 : sleepHourStart);
-            sleepHourStart = (sleepHourStart > 24 ? 0 : sleepHourStart);
-            EEPROM.write(menu, sleepHourStart);
-            break;
-        }
+    {
+        sleepHourStart += (decrease ? 1 : -1);
+        sleepHourStart = (sleepHourStart < 0 ? 24 : sleepHourStart);
+        sleepHourStart = (sleepHourStart > 24 ? 0 : sleepHourStart);
+        EEPROM.write(menu, sleepHourStart);
+        break;
+    }
     case SleepEnd:
-        {
-            sleepHourEnd += (decrease ? 1 : -1);
-            sleepHourEnd = (sleepHourEnd < 0 ? 24 : sleepHourEnd);
-            sleepHourEnd = (sleepHourEnd > 24 ? 0 : sleepHourEnd);
-            EEPROM.write(menu, sleepHourEnd);
-            break;
-        }
+    {
+        sleepHourEnd += (decrease ? 1 : -1);
+        sleepHourEnd = (sleepHourEnd < 0 ? 24 : sleepHourEnd);
+        sleepHourEnd = (sleepHourEnd > 24 ? 0 : sleepHourEnd);
+        EEPROM.write(menu, sleepHourEnd);
+        break;
+    }
     case AlarmMode:
-        {
-            alarmModeEnabled = !alarmModeEnabled;
-            EEPROM.write(menu, alarmModeEnabled);
-            break;
-        }
+    {
+        alarmModeEnabled = !alarmModeEnabled;
+        EEPROM.write(menu, alarmModeEnabled);
+        break;
+    }
     case AlarmHour:
-        {
-            alarmHour += (decrease ? 1 : -1);
-            alarmHour = (alarmHour < 0 ? 24 : alarmHour);
-            alarmHour = (alarmHour > 24 ? 0 : alarmHour);
-            EEPROM.write(menu, alarmHour);
-            break;
-        }
+    {
+        alarmHour += (decrease ? 1 : -1);
+        alarmHour = (alarmHour < 0 ? 24 : alarmHour);
+        alarmHour = (alarmHour > 24 ? 0 : alarmHour);
+        EEPROM.write(menu, alarmHour);
+        break;
+    }
     case AlarmMinute:
-        {
-            alarmMinute += (decrease ? 1 : -1);
-            alarmMinute = (alarmMinute < 0 ? 60 : alarmMinute);
-            alarmMinute = (alarmMinute > 60 ? 0 : alarmMinute);
-            EEPROM.write(menu, alarmMinute);
-            break;
-        }
+    {
+        alarmMinute += (decrease ? 1 : -1);
+        alarmMinute = (alarmMinute < 0 ? 60 : alarmMinute);
+        alarmMinute = (alarmMinute > 60 ? 0 : alarmMinute);
+        EEPROM.write(menu, alarmMinute);
+        break;
+    }
     default:
-        {
-            SpinAllNumbers();
-            break;
-        }
+    {
+        SpinAllNumbers();
+        break;
+    }
     }
 }
 
@@ -743,24 +768,24 @@ void SetDot()
     switch (clockMode)
     {
     case Blink:
-        {
-            lightUp = (now.second() % 2 != 0);
-            break;
-        }
+    {
+        lightUp = (now.second() % 2 != 0);
+        break;
+    }
     case Permanent:
-        {
-            lightUp = true;
-            break;
-        }
+    {
+        lightUp = true;
+        break;
+    }
     case Off:
     default:
-        {
-            lightUp = false;
-            break;
-        }
+    {
+        lightUp = false;
+        break;
+    }
     }
 
-    if(lightUp)
+    if (lightUp)
     {
         PORTB |= 1 << 0;
     }
@@ -772,7 +797,7 @@ void SetDot()
 
 void DisplayDate(bool blink = false)
 {
-    unsigned char years = now.year()%100;
+    unsigned char years = now.year() % 100;
     unsigned char months = now.month();
     unsigned char days = now.date();
 
@@ -998,81 +1023,81 @@ void ReadEncoder()
 //
 void ReadIRCommand()
 {
-  if (irrcv.decode(&res))
-  {
-    sleep = false;
-    RestoreBacklight();
-
-    switch (res.value)
+    if (irrcv.decode(&res))
     {
-      // ON
-      case 0xF7C03F:
-        break;
-      // OFF
-      case 0xF740BF:
-        break;
-      // Plus
-  //    case 0xF7807F:
+        sleep = false;
+        RestoreBacklight();
 
-      case 0x937BB355:
-      case 0xCED4C7A9:
-      {
-        static bool plusToggled = false;
-        if (plusToggled)
+        switch (res.value)
         {
-          Beep(50);
-          iterationsInMenu = 0;
-          ProcessEncoderChange(true);
-        }
-        plusToggled = !plusToggled;
-        break;
-      }
-      // Minus
-      //case 0xF700FF:
+            // ON
+        case 0xF7C03F:
+            break;
+            // OFF
+        case 0xF740BF:
+            break;
+            // Plus
+            //    case 0xF7807F:
 
-      case 0x967BB80C:
-      case 0xD1D4CC60:
-      {
-        static bool minusToggled = false;
-        if (minusToggled)
+        case 0x937BB355:
+        case 0xCED4C7A9:
         {
-          Beep(50);
-          iterationsInMenu = 0;
-          ProcessEncoderChange(false);
+            static bool plusToggled = false;
+            if (plusToggled)
+            {
+                Beep(50);
+                iterationsInMenu = 0;
+                ProcessEncoderChange(true);
+            }
+            plusToggled = !plusToggled;
+            break;
         }
-        minusToggled = !minusToggled;
-        break;
-      }
-      // W key
-      //case 0xF7E01F:
+        // Minus
+        //case 0xF700FF:
+
+        case 0x967BB80C:
+        case 0xD1D4CC60:
+        {
+            static bool minusToggled = false;
+            if (minusToggled)
+            {
+                Beep(50);
+                iterationsInMenu = 0;
+                ProcessEncoderChange(false);
+            }
+            minusToggled = !minusToggled;
+            break;
+        }
+        // W key
+        //case 0xF7E01F:
         //case 0x9BA392C1:
         //case 0xFFFFFFFF:
 
         case 0x971BB598:
         case 0x5BC2A144:
         {
-          static bool menuToggled = false;
-          if (menuToggled)
-          {
-            Beep(50);
-            iterationsInMenu = 0;
-            if (++menu == MENU_MAX)
+            static bool menuToggled = false;
+            if (menuToggled)
             {
-              menu = MENU_NONE;
+                Beep(50);
+                iterationsInMenu = 0;
+                if (++menu == MENU_MAX)
+                {
+                    menu = MENU_NONE;
+                }
             }
-          }
 
-          menuToggled = !menuToggled;
-          break;
+            menuToggled = !menuToggled;
+            break;
         }
-      default:
-        irrcv.resume();
-        return;
-    }
-    // Receive the next value
+        default:
+            irrcv.resume();
+            return;
+        }
+        // Receive the next value
 
-    irrcv.resume();
-  }
+        irrcv.resume();
+    }
 }
 
 void ReadPirSensor()
@@ -1176,3 +1201,4 @@ void loop()
 
     DisplayTime();
 }
+
