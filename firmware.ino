@@ -53,7 +53,7 @@ int tubeBrightness = 1;
 const int tubeBrightnessMAX = 5;
 
 bool sleep = false;
-bool wasSleeping = false;
+bool wasSleeping = true;
 bool countDownMode = false;
 bool spinChangingNumbers = true;
 bool activateAnimation = false;
