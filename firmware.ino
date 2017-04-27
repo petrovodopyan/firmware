@@ -53,6 +53,7 @@ int tubeBrightness = 1;
 const int tubeBrightnessMAX = 5;
 
 bool sleep = false;
+bool wasSleeping = true;
 bool countDownMode = false;
 bool spinChangingNumbers = true;
 bool activateAnimation = false;
@@ -146,9 +147,13 @@ void RestoreBacklight()
 {
     if (!activateAnimation)
     {
-        analogWrite(pinledR, brightnessR);
-        analogWrite(pinledB, brightnessB);
-        analogWrite(pinledG, brightnessG);
+        if (wasSleeping)
+        {
+            analogWrite(pinledR, brightnessR);
+            analogWrite(pinledB, brightnessB);
+            analogWrite(pinledG, brightnessG);
+            wasSleeping = false;
+        }
     }
 }
 
@@ -1161,9 +1166,13 @@ void loop()
     {
         pressed = false;
         DimmDot();
-        analogWrite(pinledR, 0);
-        analogWrite(pinledB, 0);
-        analogWrite(pinledG, 0);
+        if (!wasSleeping)
+        {
+            analogWrite(pinledR, 0);
+            analogWrite(pinledB, 0);
+            analogWrite(pinledG, 0);
+            wasSleeping = true;
+        }
         return;
     }
 
