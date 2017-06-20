@@ -2,6 +2,7 @@
 #include "DS3231.h"
 #include <IRremote.h>
 #include <EEPROM.h>
+#include <Adafruit_NeoPixel.h>
 
 // Pins definition.
 const unsigned char pinSDI = A0;
@@ -25,9 +26,7 @@ const unsigned char pinButton = 5;
 const unsigned char pinEncoderA = 6;
 const unsigned char pinEncoderB = 7;
 
-const unsigned char pinledR = 9;
-const unsigned char pinledG = 10;
-const unsigned char pinledB = 6;
+const unsigned char pinLEDs = 10;
 
 const unsigned char pinIR = 11;
 const int iterationsDimmDigits = 35;
@@ -37,12 +36,15 @@ const int slotMachineFrequencyMAX = 5;
 
 // Constants and defines.
 #define NUMBER_MAX 100
+#define PIXELS     6
+
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXELS, pinLEDs, NEO_GRB + NEO_KHZ800);
 
 const float brightnessStep = 5;
 const float brightnessMAX = 255;
-float brightnessR = 0;
-float brightnessG = 0;
-float brightnessB = 0;
+unsigned char brightnessR = 0;
+unsigned char brightnessG = 0;
+unsigned char brightnessB = 0;
 
 bool beepOnHour = false;
 bool pressed = false;
@@ -142,13 +144,23 @@ void Beep(int size)
     digitalWrite(pinBuzzer, LOW);
 }
 
+void SetBackgroundColor(unsigned char red, unsigned char green, unsigned char blue)
+{
+    pixels.clear();
+
+    for (int i = 0; i < PIXELS; ++i)
+    {
+        pixels.setPixelColor(i, red, green, blue);
+    }
+
+    pixels.show();
+}
+
 void RestoreBacklight()
 {
     if (!activateAnimation)
     {
-        analogWrite(pinledR, brightnessR);
-        analogWrite(pinledB, brightnessB);
-        analogWrite(pinledG, brightnessG);
+        SetBackgroundColor(brightnessR, brightnessG, brightnessB);
     }
 }
 
@@ -160,21 +172,15 @@ void AnimateColors()
 
     if (seconds >= 0 && seconds < 20)
     {
-        analogWrite(pinledR, (seconds >= 10) ? negativeBrightness : brightness);
-        analogWrite(pinledB, 0);
-        analogWrite(pinledG, 0);
+        SetBackgroundColor((seconds >= 10) ? negativeBrightness : brightness, 0, 0);
     }
     else if (seconds >= 20 && seconds < 40)
     {
-        analogWrite(pinledR, 0);
-        analogWrite(pinledB, (seconds >= 30) ? negativeBrightness : brightness);
-        analogWrite(pinledG, 0);
+        SetBackgroundColor(0, 0, (seconds >= 30) ? negativeBrightness : brightness);
     }
     else
     {
-        analogWrite(pinledR, 0);
-        analogWrite(pinledB, 0);
-        analogWrite(pinledG, (seconds >= 50) ? negativeBrightness : brightness);
+        SetBackgroundColor(0, (seconds >= 50) ? negativeBrightness : brightness, 0);
     }
 }
 
@@ -335,26 +341,45 @@ void SpinAllNumbers(unsigned char spinTimes = 5)
     }
 }
 
-void TestColorChanel(int chanelPin)
+void TestColorChanels()
 {
     for (int i = 0; i < brightnessMAX; ++i)
     {
-        analogWrite(chanelPin, i);
+        SetBackgroundColor(i, 0, 0);
         delay(3);
     }
     for (int i = brightnessMAX; i > 0; --i)
     {
-        analogWrite(chanelPin, i);
+        SetBackgroundColor(i, 0, 0);
         delay(3);
     }
-    analogWrite(chanelPin, 0);
+
+    for (int i = 0; i < brightnessMAX; ++i)
+    {
+        SetBackgroundColor(0, i, 0);
+        delay(3);
+    }
+    for (int i = brightnessMAX; i > 0; --i)
+    {
+        SetBackgroundColor(0, i, 0);
+        delay(3);
+    }
+
+    for (int i = 0; i < brightnessMAX; ++i)
+    {
+        SetBackgroundColor(0, 0, i);
+        delay(3);
+    }
+    for (int i = brightnessMAX; i > 0; --i)
+    {
+        SetBackgroundColor(0, 0, i);
+        delay(3);
+    }
 }
 
 void RunSelfTesting()
 {
-    TestColorChanel(pinledR);
-    TestColorChanel(pinledB);
-    TestColorChanel(pinledG);
+    TestColorChanels();
 
     SpinAllNumbers(60);
 }
@@ -441,10 +466,8 @@ void setup()
     pinMode(anode1, OUTPUT);
     pinMode(anode2, OUTPUT);
 
-    // Backlight pin.
-    pinMode(pinledR, OUTPUT);
-    pinMode(pinledG, OUTPUT);
-    pinMode(pinledB, OUTPUT);
+    // Back light init.
+    pixels.begin();
 
     pinMode(pinDot, OUTPUT);
     pinMode(pinBuzzer, OUTPUT);
@@ -479,7 +502,7 @@ void setup()
     Beep(50);
 }
 
-void SetChanelBrightness(bool decrease, float& brightness, const uint8_t pin)
+void SetChanelBrightness(bool decrease, unsigned char& brightness)
 {
     if (decrease)
     {
@@ -495,7 +518,8 @@ void SetChanelBrightness(bool decrease, float& brightness, const uint8_t pin)
             brightness -= brightnessStep;
         }
     }
-    analogWrite(pin, brightness);
+
+    SetBackgroundColor(brightnessR, brightnessG, brightnessB);
 }
 
 void ProcessEncoderChange(bool decrease)
@@ -504,19 +528,19 @@ void ProcessEncoderChange(bool decrease)
     {
     case BacklightRed:
     {
-        SetChanelBrightness(decrease, brightnessR, pinledR);
+        SetChanelBrightness(decrease, brightnessR);
         EEPROM.write(menu, brightnessR);
         break;
     }
     case BacklightBlue:
     {
-        SetChanelBrightness(decrease, brightnessB, pinledB);
+        SetChanelBrightness(decrease, brightnessB);
         EEPROM.write(menu, brightnessB);
         break;
     }
     case BacklightGreen:
     {
-        SetChanelBrightness(decrease, brightnessG, pinledG);
+        SetChanelBrightness(decrease, brightnessG);
         EEPROM.write(menu, brightnessG);
         break;
     }
@@ -1037,7 +1061,7 @@ void ReadIRCommand()
         case 0xF740BF:
             break;
             // Plus
-            //    case 0xF7807F:
+       // case 0xF7807F:
 
         case 0x937BB355:
         case 0xCED4C7A9:
@@ -1069,7 +1093,7 @@ void ReadIRCommand()
             break;
         }
         // W key
-        //case 0xF7E01F:
+        // case 0xF7E01F:
         //case 0x9BA392C1:
         //case 0xFFFFFFFF:
 
@@ -1161,9 +1185,8 @@ void loop()
     {
         pressed = false;
         DimmDot();
-        analogWrite(pinledR, 0);
-        analogWrite(pinledB, 0);
-        analogWrite(pinledG, 0);
+        pixels.clear();
+        pixels.show();
         return;
     }
 
