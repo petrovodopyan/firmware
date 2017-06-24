@@ -3,6 +3,7 @@
 #include <IRremote.h>
 #include <EEPROM.h>
 #include <Adafruit_NeoPixel.h>
+#include <NewTone.h>
 
 // Pins definition.
 const unsigned char pinSDI = A0;
@@ -28,7 +29,7 @@ const unsigned char pinEncoderB = 7;
 
 const unsigned char pinLEDs = 10;
 
-const unsigned char pinIR = 11;
+const unsigned char pinIR = 9;
 const int iterationsDimmDigits = 35;
 
 int slotMachineFrequency = 1;
@@ -41,7 +42,7 @@ const int slotMachineFrequencyMAX = 5;
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXELS, pinLEDs, NEO_GRB + NEO_KHZ800);
 
 const float brightnessStep = 5;
-const float brightnessMAX = 255;
+const float brightnessMAX = 50;
 unsigned char brightnessR = 0;
 unsigned char brightnessG = 0;
 unsigned char brightnessB = 0;
@@ -139,9 +140,7 @@ enum Menu
 
 void Beep(int size)
 {
-    digitalWrite(pinBuzzer, HIGH);
-    delay(size);
-    digitalWrite(pinBuzzer, LOW);
+    NewTone(pinBuzzer, 4000, 50);
 }
 
 void SetBackgroundColor(unsigned char red, unsigned char green, unsigned char blue)
@@ -343,34 +342,35 @@ void SpinAllNumbers(unsigned char spinTimes = 5)
 
 void TestColorChanels()
 {
-    for (int i = 0; i < brightnessMAX; ++i)
+    const int maxBrightness = 255;
+    for (int i = 0; i < maxBrightness; ++i)
     {
         SetBackgroundColor(i, 0, 0);
         delay(3);
     }
-    for (int i = brightnessMAX; i > 0; --i)
+    for (int i = maxBrightness; i > 0; --i)
     {
         SetBackgroundColor(i, 0, 0);
         delay(3);
     }
 
-    for (int i = 0; i < brightnessMAX; ++i)
+    for (int i = 0; i < maxBrightness; ++i)
     {
         SetBackgroundColor(0, i, 0);
         delay(3);
     }
-    for (int i = brightnessMAX; i > 0; --i)
+    for (int i = maxBrightness; i > 0; --i)
     {
         SetBackgroundColor(0, i, 0);
         delay(3);
     }
 
-    for (int i = 0; i < brightnessMAX; ++i)
+    for (int i = 0; i < maxBrightness; ++i)
     {
         SetBackgroundColor(0, 0, i);
         delay(3);
     }
-    for (int i = brightnessMAX; i > 0; --i)
+    for (int i = maxBrightness; i > 0; --i)
     {
         SetBackgroundColor(0, 0, i);
         delay(3);
