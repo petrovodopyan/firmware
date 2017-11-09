@@ -166,8 +166,8 @@ void RestoreBacklight()
 void AnimateColors()
 {
     const int seconds = now.second();
-    const int brightness = (seconds % 10) * 10;
-    const int negativeBrightness = (10 - (seconds % 10)) * 10;
+    const int brightness = (seconds % 10) * 8;
+    const int negativeBrightness = (10 - (seconds % 10)) * 8;
 
     if (seconds >= 0 && seconds < 20)
     {
@@ -342,38 +342,38 @@ void SpinAllNumbers(unsigned char spinTimes = 5)
 
 void TestColorChanels()
 {
-    const int maxBrightness = 255;
+    const int maxBrightness = 80;
     for (int i = 0; i < maxBrightness; ++i)
     {
         SetBackgroundColor(i, 0, 0);
-        delay(3);
+        delay(5);
     }
     for (int i = maxBrightness; i > 0; --i)
     {
         SetBackgroundColor(i, 0, 0);
-        delay(3);
+        delay(5);
     }
 
     for (int i = 0; i < maxBrightness; ++i)
     {
         SetBackgroundColor(0, i, 0);
-        delay(3);
+        delay(5);
     }
     for (int i = maxBrightness; i > 0; --i)
     {
         SetBackgroundColor(0, i, 0);
-        delay(3);
+        delay(5);
     }
 
     for (int i = 0; i < maxBrightness; ++i)
     {
         SetBackgroundColor(0, 0, i);
-        delay(3);
+        delay(5);
     }
     for (int i = maxBrightness; i > 0; --i)
     {
         SetBackgroundColor(0, 0, i);
-        delay(3);
+        delay(5);
     }
 }
 
@@ -763,7 +763,7 @@ bool TimeToSleep()
     if (sleepHourStart > sleepHourEnd)
     {
         // If sleep period exceeds one day (22:00 - 7:00)
-        if (hours >= sleepHourStart || hours <= sleepHourEnd)
+        if (hours >= sleepHourStart || hours < sleepHourEnd)
         {
             return true;
         }
@@ -771,7 +771,7 @@ bool TimeToSleep()
     else
     {
         // Regular time period (1:00 - 7:00).
-        if (hours >= sleepHourStart && hours <= sleepHourEnd)
+        if (hours >= sleepHourStart && hours < sleepHourEnd)
         {
             return true;
         }
