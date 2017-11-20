@@ -8,11 +8,13 @@
 // Pins definition.
 const unsigned char pinSDI = A0;
 const unsigned char pinCLK = A1;
-const unsigned char pinLE = A2;
+const unsigned char pinLE = 7;
+
+const unsigned char pinHV = 6;
 
 const unsigned int spinningTime = 3;
 
-const unsigned char pinBLNK = 7;
+//const unsigned char pinBLNK = 7;
 const uint8_t anode0 = 2;
 const uint8_t anode1 = 3;
 const uint8_t anode2 = 4;
@@ -20,7 +22,7 @@ const uint8_t anode2 = 4;
 const unsigned char pinPirSensor = 0;
 const unsigned char pinPirSensorPlug = 1;
 
-const unsigned char pinBuzzer = A3;
+const unsigned char pinBuzzer = A2;
 const unsigned char pinDot = 8;
 
 const unsigned char pinButton = 5;
@@ -240,13 +242,13 @@ unsigned int writeTwoNumbers(unsigned char left, unsigned char right, unsigned c
         byte3 &= ~(1 << 3);
     }
 
-    PORTC &= ~(1 << 2); // digitalWrite(pinLE, LOW);
+    PORTD &= ~(1 << 7); // digitalWrite(pinLE, LOW);
 
     shift5812PJ(byte3);
     shift5812PJ(byte2);
     shift5812PJ(byte1);
 
-    PORTC |= 1 << 2; // digitalWrite(pinLE, HIGH);
+    PORTD |= 1 << 7; // digitalWrite(pinLE, HIGH);
 
     PORTD |= 1 << anode; //digitalWrite(anode, HIGH);
     delay(1);
@@ -459,7 +461,8 @@ void setup()
     pinMode(pinSDI, OUTPUT);
     pinMode(pinCLK, OUTPUT);
     pinMode(pinLE, OUTPUT);
-    pinMode(pinBLNK, OUTPUT);
+  //  pinMode(pinBLNK, OUTPUT);
+    pinMode(pinHV, OUTPUT);
 
     // Anode pins.
     pinMode(anode0, OUTPUT);
@@ -487,6 +490,8 @@ void setup()
 
     pinMode(pinPirSensor, INPUT_PULLUP);
     pinMode(pinPirSensorPlug, INPUT_PULLUP);
+
+    digitalWrite(pinHV, HIGH);
 
     /// Start selftesting.
     RunSelfTesting();
