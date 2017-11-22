@@ -20,7 +20,7 @@ const uint8_t anode2 = 4;
 const unsigned char pinPirSensor = 0;
 const unsigned char pinPirSensorPlug = 1;
 
-const unsigned char pinBuzzer = A3;
+const unsigned char pinBuzzer = 12;
 const unsigned char pinDot = 8;
 
 const unsigned char pinButton = 5;
@@ -998,6 +998,10 @@ void ProcessButton()
         if (sleep)
         {
             return;
+        }
+        else
+        {
+            RestoreBacklight();
         }
     }
 
