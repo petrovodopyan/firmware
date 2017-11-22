@@ -1004,6 +1004,10 @@ void ProcessButton()
         {
             return;
         }
+        else
+        {
+            RestoreBacklight();
+        }
     }
 
     if ((PIND & (1 << pinButton)) == 0)
