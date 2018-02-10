@@ -8,11 +8,9 @@
 // Pins definition.
 const unsigned char pinSDI = A0;
 const unsigned char pinCLK = A1;
-const unsigned char pinLE = A2;
+const unsigned char pinLE = 7;
+const unsigned char pinHV_Brightness = 6;
 
-const unsigned int spinningTime = 3;
-
-const unsigned char pinBLNK = 7;
 const uint8_t anode0 = 2;
 const uint8_t anode1 = 3;
 const uint8_t anode2 = 4;
@@ -20,7 +18,7 @@ const uint8_t anode2 = 4;
 const unsigned char pinPirSensor = 0;
 const unsigned char pinPirSensorPlug = 1;
 
-const unsigned char pinBuzzer = 12;
+const unsigned char pinBuzzer = A2;
 const unsigned char pinDot = 8;
 
 const unsigned char pinButton = 5;
@@ -28,11 +26,14 @@ const unsigned char pinEncoderA = 6;
 const unsigned char pinEncoderB = 7;
 
 const unsigned char pinLEDs = 10;
+const unsigned char pin12VSwitch = 11;
 
 const unsigned char pinIR = 9;
+
+const unsigned int spinningTime = 3;
 const int iterationsDimmDigits = 35;
 
-int slotMachineFrequency = 1;
+int slotMachineFrequency = 0;
 const int slotMachineFrequencyMAX = 5;
 
 // Constants and defines.
@@ -53,7 +54,8 @@ bool HoursMode12 = false;
 bool showDate = false;
 
 int tubeBrightness = 1;
-const int tubeBrightnessMAX = 5;
+const int tubeBrightnessStep = 10;
+const int tubeBrightnessMAX = 25;
 
 bool sleep = false;
 bool countDownMode = false;
@@ -157,6 +159,8 @@ void SetBackgroundColor(unsigned char red, unsigned char green, unsigned char bl
 
 void RestoreBacklight()
 {
+    digitalWrite(pin12VSwitch, HIGH);
+
     if (!activateAnimation)
     {
         SetBackgroundColor(brightnessR, brightnessG, brightnessB);
@@ -240,18 +244,18 @@ unsigned int writeTwoNumbers(unsigned char left, unsigned char right, unsigned c
         byte3 &= ~(1 << 3);
     }
 
-    PORTC &= ~(1 << 2); // digitalWrite(pinLE, LOW);
+    PORTD &= ~(1 << 7); // digitalWrite(pinLE, LOW);
 
     shift5812PJ(byte3);
     shift5812PJ(byte2);
     shift5812PJ(byte1);
 
-    PORTC |= 1 << 2; // digitalWrite(pinLE, HIGH);
+    PORTD |= 1 << 7; // digitalWrite(pinLE, HIGH);
 
     PORTD |= 1 << anode; //digitalWrite(anode, HIGH);
     delay(1);
     PORTD &= ~(1 << anode); //digitalWrite(anode, LOW);
-    delay(tubeBrightness);
+    delay(1);
 }
 
 void DisplayNumbers(unsigned char number1, unsigned char number2, unsigned char number3, unsigned char number4, unsigned char number5, unsigned char number6)
@@ -312,7 +316,7 @@ void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t thr
             for (int j = 0; j < spinningTime; ++j)
             {
                 DisplayNumbers(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], numbers[5]);
-                delay(1);
+                delayMicroseconds(1100);
             }
         }
 
@@ -403,8 +407,10 @@ void ReadSettings()
 
     if (tubeBrightness > tubeBrightnessMAX)
     {
-        tubeBrightness = 1;
+        tubeBrightness = tubeBrightnessMAX;
     }
+
+    analogWrite(pinHV_Brightness, tubeBrightness * tubeBrightnessStep);
 
     slotMachineFrequency = EEPROM.read(SlotMachine);
 
@@ -459,7 +465,10 @@ void setup()
     pinMode(pinSDI, OUTPUT);
     pinMode(pinCLK, OUTPUT);
     pinMode(pinLE, OUTPUT);
-    pinMode(pinBLNK, OUTPUT);
+    pinMode(pin12VSwitch, OUTPUT);
+    pinMode(pinHV_Brightness, OUTPUT);
+
+    digitalWrite(pin12VSwitch, HIGH);
 
     // Anode pins.
     pinMode(anode0, OUTPUT);
@@ -488,17 +497,16 @@ void setup()
     pinMode(pinPirSensor, INPUT_PULLUP);
     pinMode(pinPirSensorPlug, INPUT_PULLUP);
 
+    ReadSettings();
+
     /// Start selftesting.
     RunSelfTesting();
     /// End selftesting.
-
-    ReadSettings();
 
     RestoreBacklight();
 
     // Start IR receiver.
     irrcv.enableIRIn();
-
     Beep(50);
 }
 
@@ -574,14 +582,15 @@ void ProcessEncoderChange(bool decrease)
         tubeBrightness += (decrease ? 1 : -1);
         tubeBrightness = (tubeBrightness < 1 ? tubeBrightnessMAX : tubeBrightness);
         tubeBrightness = (tubeBrightness > tubeBrightnessMAX ? 1 : tubeBrightness);
+        analogWrite(pinHV_Brightness, tubeBrightness * tubeBrightnessStep);
         EEPROM.write(menu, tubeBrightness);
         break;
     }
     case SlotMachine:
     {
         slotMachineFrequency += (decrease ? 1 : -1);
-        slotMachineFrequency = (slotMachineFrequency < 1 ? : slotMachineFrequency);
-        slotMachineFrequency = (slotMachineFrequency > slotMachineFrequencyMAX ? 1 : slotMachineFrequency);
+        slotMachineFrequency = (slotMachineFrequency < 1 ? 0 : slotMachineFrequency);
+        slotMachineFrequency = (slotMachineFrequency > slotMachineFrequencyMAX ? 0 : slotMachineFrequency);
         EEPROM.write(menu, slotMachineFrequency);
         break;
     }
@@ -1191,6 +1200,8 @@ void loop()
         DimmDot();
         pixels.clear();
         pixels.show();
+        digitalWrite(pin12VSwitch, LOW);
+
         return;
     }
 
