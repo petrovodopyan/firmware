@@ -51,7 +51,6 @@ unsigned char brightnessB = 0;
 bool beepOnHour = false;
 bool pressed = false;
 bool HoursMode12 = false;
-bool showDate = false;
 
 int tubeBrightness = 1;
 const int tubeBrightnessStep = 10;
@@ -59,7 +58,7 @@ const int tubeBrightnessMAX = 25;
 
 bool sleep = false;
 bool countDownMode = false;
-bool spinChangingNumbers = true;
+
 bool activateAnimation = false;
 
 int iterationsInMenu = 0;
@@ -101,41 +100,51 @@ enum DateFormat
     MAX,
 };
 
+enum ScrollMode
+{
+  NONE = 0,
+  CHANGING,
+ // POPULATE,
+  UPDATE,
+  SCROLL_MAX
+};
+
 int currentFormat = MMDDYY;
+int scrollMode = CHANGING;
 
 enum Menu
 {
-    MENU_NONE       = 0,
+    MENU_NONE               = 0,
 
-    BacklightRed    = 1,
-    BacklightGreen  = 2,
-    BacklightBlue   = 3,
+    BacklightRed            = 1,
+    BacklightGreen          = 2,
+    BacklightBlue           = 3,
 
-    AlarmMode       = 4,
-    AlarmHour       = 5,
-    AlarmMinute     = 6,
+    AlarmMode               = 4,
+    AlarmHour               = 5,
+    AlarmMinute             = 6,
 
-    DotSetup        = 7,
-    BeepSetup       = 8,
+    DotSetup                = 7,
+    BeepSetup               = 8,
 
-    TubeBrightness  = 9,
-    SlotMachine     = 10,
-    SpinChangingNumbers,
-    AnimateColorsMode,
+    TubeBrightness          = 9,
+    SlotMachine             = 10,
+    SpinChangingNumbers     = 11,
+    AnimateColorsMode       = 12,
 
-    HourModeSetup,
-    DateMode,
+    HourModeSetup           = 13,
+    DateMode                = 14,
 
-    HoursSetup,
-    MinutesSetup,
-    SecondsSetup,
+    HoursSetup              = 15,
+    MinutesSetup            = 16,
+    SecondsSetup            = 17,
 
-    MonthSetup,
-    DaySetup,
-    YearSetup,
+    MonthSetup              = 18,
+    DaySetup                = 19,
+    YearSetup               = 20,
 
-    SleepStart,
-    SleepEnd,
+    SleepStart              = 21,
+    SleepEnd                = 22,
 
     MENU_MAX,
 };
@@ -143,6 +152,11 @@ enum Menu
 void Beep(int size)
 {
     NewTone(pinBuzzer, 4000, 50);
+}
+
+bool MenuPressed()
+{
+    return ((PIND & (1 << pinButton)) == 0);
 }
 
 void SetBackgroundColor(unsigned char red, unsigned char green, unsigned char blue)
@@ -265,7 +279,7 @@ void DisplayNumbers(unsigned char number1, unsigned char number2, unsigned char 
     writeTwoNumbers(number3, number6, anode2);
 }
 
-void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t three, bool spining = false)
+void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t three, ScrollMode mode = NONE)
 {
     // Get the high and low order values for three pairs.
     unsigned char lowerFirst = one % 10;
@@ -275,9 +289,9 @@ void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t thr
     unsigned char lowerThird = three % 10;
     unsigned char upperThird = three - lowerThird;
 
-    if (upperThird >= 10) upperThird = upperThird / 10;
-    if (upperSecond >= 10) upperSecond = upperSecond / 10;
-    if (upperFirst >= 10) upperFirst = upperFirst / 10;
+    if (upperThird >= 10) upperThird /= 10;
+    if (upperSecond >= 10) upperSecond /= 10;
+    if (upperFirst >= 10) upperFirst /= 10;
 
     if (one >= 100)
     {
@@ -293,44 +307,78 @@ void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t thr
     }
 
     //SetDot();
-    static uint8_t  s_upperFirst = 0,
+    static unsigned char s_upperFirst = 0,
         s_lowerFirst = 0,
         s_upperSecond = 0,
         s_lowerSecond = 0,
         s_upperThird = 0,
         s_lowerThird = 0;
 
-    if (spining && s_lowerThird != lowerThird)
+    switch (mode)
     {
-        for (int i = 0; i < 10; ++i)
+        case CHANGING:
         {
-            int numbers[6] = {
-                (s_upperFirst != upperFirst) ? ((upperFirst + i) % 10) : upperFirst,
-                (s_lowerFirst != lowerFirst) ? ((lowerFirst + i) % 10) : lowerFirst,
-                (s_upperSecond != upperSecond) ? ((upperSecond + i) % 10) : upperSecond,
-                (s_lowerSecond != lowerSecond) ? ((lowerSecond + i) % 10) : lowerSecond,
-                (s_upperThird != upperThird) ? ((upperThird + i) % 10) : upperThird,
-                (s_lowerThird != lowerThird) ? ((lowerThird + i) % 10) : lowerThird
-            };
-
-            for (int j = 0; j < spinningTime; ++j)
+            if (s_lowerThird != lowerThird)
             {
-                DisplayNumbers(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], numbers[5]);
-                delayMicroseconds(1100);
-            }
-        }
+                for (int i = 0; i < 10; ++i)
+                {
+                    int numbers[6] = {
+                        (s_upperFirst != upperFirst) ? ((upperFirst + i) % 10) : upperFirst,
+                        (s_lowerFirst != lowerFirst) ? ((lowerFirst + i) % 10) : lowerFirst,
+                        (s_upperSecond != upperSecond) ? ((upperSecond + i) % 10) : upperSecond,
+                        (s_lowerSecond != lowerSecond) ? ((lowerSecond + i) % 10) : lowerSecond,
+                        (s_upperThird != upperThird) ? ((upperThird + i) % 10) : upperThird,
+                        (s_lowerThird != lowerThird) ? ((lowerThird + i) % 10) : lowerThird
+                    };
 
-        s_upperFirst = upperFirst;
-        s_lowerFirst = lowerFirst;
-        s_upperSecond = upperSecond;
-        s_lowerSecond = lowerSecond;
-        s_upperThird = upperThird;
-        s_lowerThird = lowerThird;
+                    for (int j = 0; j < spinningTime; ++j)
+                    {
+                        DisplayNumbers(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], numbers[5]);
+                        delayMicroseconds(1100);
+                    }
+                }
+            }
+            break;
+        }
+        case UPDATE:
+        {
+            if (s_lowerThird != lowerThird)
+            {
+                for (int k = 0; k < 6; ++k)
+                {
+                    for (int i = 0; i < 10; ++i)
+                    {
+                        for (unsigned char j = 0; j < 2; ++j)
+                        {
+                            DisplayNumbers(
+                              (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
+                              (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
+                              (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
+                              (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
+                              (k == 4) ? ((upperThird + i) % 10) : upperThird,
+                              (k == 5) ? ((lowerThird + i) % 10) : lowerThird
+                            );
+                             delayMicroseconds(1000);
+                        }
+                        if (MenuPressed())
+                            break;
+                    }
+                    if (MenuPressed())
+                        break;
+                }
+            }
+
+            break;
+        }
     }
-    else
-    {
-        DisplayNumbers(upperFirst, lowerFirst, upperSecond, lowerSecond, upperThird, lowerThird);
-    }
+    DisplayNumbers(upperFirst, lowerFirst, upperSecond, lowerSecond, upperThird, lowerThird);
+
+    s_upperFirst = upperFirst;
+    s_lowerFirst = lowerFirst;
+    s_upperSecond = upperSecond;
+    s_lowerSecond = lowerSecond;
+    s_upperThird = upperThird;
+    s_lowerThird = lowerThird;
 }
 
 void SpinAllNumbers(unsigned char spinTimes = 5)
@@ -419,7 +467,12 @@ void ReadSettings()
         slotMachineFrequency = 1;
     }
 
-    spinChangingNumbers = EEPROM.read(SpinChangingNumbers);
+    scrollMode = EEPROM.read(SpinChangingNumbers);
+
+    if (scrollMode >= SCROLL_MAX)
+    {
+        scrollMode = ScrollMode::CHANGING;
+    }
 
     currentFormat = (DateFormat)EEPROM.read(DateMode);
 
@@ -596,8 +649,11 @@ void ProcessEncoderChange(bool decrease)
     }
     case SpinChangingNumbers:
     {
-        spinChangingNumbers = !spinChangingNumbers;
-        EEPROM.write(menu, spinChangingNumbers);
+        scrollMode += (decrease ? 1 : -1);
+        scrollMode = (scrollMode < 0 ? ScrollMode::UPDATE : scrollMode);
+        scrollMode = (scrollMode > ScrollMode::UPDATE ? ScrollMode::NONE : scrollMode);
+
+        EEPROM.write(menu, scrollMode);
         break;
     }
     case AnimateColorsMode:
@@ -872,18 +928,25 @@ void DisplayDate(bool blink = false)
 
 void DisplayTime(bool blink = false)
 {
+    static bool showDate = false;
+
+    if (showDate)
+    {
+        DisplayDate();
+
+        if (iterationsShowedDate++ > 400)
+        {
+            showDate = false;
+            iterationsShowedDate = 0;
+            SpinAllNumbers();
+        }
+
+        return;
+    }
+
     unsigned char hours = now.hour();
     unsigned char minutes = now.minute();
     unsigned char seconds = now.second();
-
-    // if midnight process cathod poisoning.
-    if (hours == 0 && minutes == 0 && seconds == 0)
-    {
-        for (unsigned char i = 0; i < 10; i++)
-        {
-            SpinAllNumbers(50);
-        }
-    }
 
     if (seconds == 0 && minutes == 0 && beepOnHour)
     {
@@ -919,7 +982,7 @@ void DisplayTime(bool blink = false)
         }
     }
 
-    DisplayThreeNumbers(hours, minutes, seconds, (!blink && spinChangingNumbers));
+    DisplayThreeNumbers(hours, minutes, seconds, scrollMode);
 }
 
 void ProcessMenu()
@@ -966,7 +1029,7 @@ void ProcessMenu()
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : slotMachineFrequency);
         break;
     case SpinChangingNumbers:
-        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : spinChangingNumbers);
+        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : scrollMode);
         break;
     case AnimateColorsMode:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : activateAnimation);
@@ -1014,7 +1077,7 @@ void ProcessButton()
         }
     }
 
-    if ((PIND & (1 << pinButton)) == 0)
+    if (MenuPressed())
     {
         pressed = true;
         if (iterationsButtonPressed++ > 200)
@@ -1178,6 +1241,7 @@ void ReadPirSensor()
 
 void loop()
 {
+
     now = rtc.now();
 
     ReadIRCommand();
@@ -1223,20 +1287,5 @@ void loop()
         return;
     }
 
-    if (showDate)
-    {
-        DisplayDate();
-
-        if (iterationsShowedDate++ > 400)
-        {
-            showDate = false;
-            iterationsShowedDate = 0;
-            SpinAllNumbers();
-        }
-
-        return;
-    }
-
     DisplayTime();
 }
-
