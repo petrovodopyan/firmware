@@ -982,7 +982,7 @@ void DisplayTime(bool blink = false)
         }
     }
 
-    DisplayThreeNumbers(hours, minutes, seconds, scrollMode);
+    DisplayThreeNumbers(hours, minutes, seconds, (menu != MENU_NONE) ? NONE : scrollMode);
 }
 
 void ProcessMenu()
