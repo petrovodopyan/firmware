@@ -64,7 +64,6 @@ bool activateAnimation = false;
 int iterationsInMenu = 0;
 int iterationsButtonPressed = 0;
 int iterationsShowed = 0;
-int iterationsShowedDate = 0;
 
 unsigned char clockMode = 0;
 unsigned char encoder_A_prev = 0;
@@ -926,38 +925,191 @@ void DisplayDate(bool blink = false)
     }
 }
 
-void DisplayTime(bool blink = false)
+void ScrollFromTimeToDate()
 {
-    static bool showDate = false;
-
-    if (showDate)
-    {
-        DisplayDate();
-
-        if (iterationsShowedDate++ > 400)
-        {
-            showDate = false;
-            iterationsShowedDate = 0;
-            SpinAllNumbers();
-        }
-
-        return;
-    }
-
     unsigned char hours = now.hour();
     unsigned char minutes = now.minute();
     unsigned char seconds = now.second();
 
-    if (seconds == 0 && minutes == 0 && beepOnHour)
+    unsigned char years = now.year() % 100;
+    unsigned char months = now.month();
+    unsigned char days = now.date();
+
+    // Get the high and low order values for three pairs.
+    unsigned char lowerFirst = hours % 10;
+    unsigned char upperFirst = hours - lowerFirst;
+    unsigned char lowerSecond = minutes % 10;
+    unsigned char upperSecond = minutes - lowerSecond;
+    unsigned char lowerThird = seconds % 10;
+    unsigned char upperThird = seconds - lowerThird;
+
+    if (upperThird >= 10) upperThird /= 10;
+    if (upperSecond >= 10) upperSecond /= 10;
+    if (upperFirst >= 10) upperFirst /= 10;
+
+    for (int k = 0; k < 6; ++k)
+    {
+        for (int i = 0; i < 10; ++i)
+        {
+        for (unsigned char j = 0; j < 2; ++j)
+        {
+            DisplayNumbers(
+            (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
+            (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
+            (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
+            (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
+            (k == 4) ? ((upperThird + i) % 10) : upperThird,
+            (k == 5) ? ((lowerThird + i) % 10) : lowerThird
+            );
+            delayMicroseconds(1000);
+        }
+        if (MenuPressed())
+            break;
+        }
+
+        switch (currentFormat)
+        {
+        case DDMMYY:
+            {
+            if (k == 0) upperFirst = days - (days % 10);
+            if (k == 1) lowerFirst = days % 10;
+            if (k == 2) upperSecond = months - (months % 10);
+            if (k == 3) lowerSecond = months % 10;
+            if (k == 4) upperThird = years - (years % 10);
+            if (k == 5) lowerThird = years % 10;
+
+            break;
+            }
+        case MMDDYY:
+            {
+            if (k == 0) upperFirst = months - (months % 10);
+            if (k == 1) lowerFirst = months % 10;
+            if (k == 2) upperSecond = days - (days % 10);
+            if (k == 3) lowerSecond = days % 10;
+            if (k == 4) upperThird = years - (years % 10);
+            if (k == 5) lowerThird = years % 10;
+
+            break;
+            }
+        case YYMMDD:
+            {
+            if (k == 0) upperFirst = years - (years % 10);
+            if (k == 1) lowerFirst = years % 10;
+            if (k == 2) upperSecond = months - (months % 10);
+            if (k == 3) lowerSecond = months % 10;
+            if (k == 4) upperThird = days - (days % 10);
+            if (k == 5) lowerThird = days % 10;
+
+            break;
+            }
+        }
+
+        if (MenuPressed())
+        break;
+    }
+
+    for (int i = 0; i < 400; ++i)
+    {
+        DisplayDate();
+    }
+
+    years = rtc.now().year() % 100;
+    months = rtc.now().month();
+    days = rtc.now().date();
+
+    switch (currentFormat)
+    {
+    case DDMMYY:
+    {
+        upperFirst = days - (days % 10);
+        lowerFirst = days % 10;
+        upperSecond = months - (months % 10);
+        lowerSecond = months % 10;
+        upperThird = years - (years % 10);
+        lowerThird = years % 10;
+
+        break;
+    }
+    case MMDDYY:
+    {
+        upperFirst = months - (months % 10);
+        lowerFirst = months % 10;
+        upperSecond = days - (days % 10);
+        lowerSecond = days % 10;
+        upperThird = years - (years % 10);
+        lowerThird = years % 10;
+
+        break;
+    }
+    case YYMMDD:
+    {
+        upperFirst = years - (years % 10);
+        lowerFirst = years % 10;
+        upperSecond = months - (months % 10);
+        lowerSecond = months % 10;
+        upperThird = days - (days % 10);
+        lowerThird = days % 10;
+
+        break;
+    }
+    }
+
+    hours = rtc.now().hour();
+    minutes = rtc.now().minute();
+    seconds = rtc.now().second();
+
+    for (int k = 0; k < 6; ++k)
+    {
+        for (int i = 0; i < 10; ++i)
+        {
+            for (unsigned char j = 0; j < 2; ++j)
+            {
+                DisplayNumbers(
+                (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
+                (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
+                (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
+                (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
+                (k == 4) ? ((upperThird + i) % 10) : upperThird,
+                (k == 5) ? ((lowerThird + i) % 10) : lowerThird
+                );
+                delayMicroseconds(1000);
+            }
+            if (MenuPressed())
+                break;
+        }
+
+        if (k == 0) upperFirst = hours - (hours % 10);
+        if (k == 1) lowerFirst = hours % 10;
+        if (k == 2) upperSecond = minutes - (minutes % 10);
+        if (k == 3) lowerSecond = minutes % 10;
+        if (k == 4) upperThird = seconds - (seconds % 10);
+        if (k == 5) lowerThird = seconds % 10;
+
+        if (upperThird >= 10) upperThird /= 10;
+        if (upperSecond >= 10) upperSecond /= 10;
+        if (upperFirst >= 10) upperFirst /= 10;
+
+        if (MenuPressed())
+            break;
+    }
+}
+
+void DisplayTime(bool blink = false)
+{
+    unsigned char hours = now.hour();
+    unsigned char minutes = now.minute();
+    unsigned char seconds = now.second();
+
+    if (seconds == 56 && minutes == 0 && beepOnHour)
     {
         // Beep once on hour start.
         Beep(50);
     }
-    // if time to show date plus prevent cathode poisoning.
-    if (seconds == 0 && (minutes % slotMachineFrequency) == 0)
+
+    // if is time to show date and prevent cathode poisoning.
+    if (seconds == 56 && (minutes % slotMachineFrequency) == 0)
     {
-        SpinAllNumbers();
-        showDate = true;
+        ScrollFromTimeToDate();
         return;
     }
 
@@ -1241,7 +1393,6 @@ void ReadPirSensor()
 
 void loop()
 {
-
     now = rtc.now();
 
     ReadIRCommand();
