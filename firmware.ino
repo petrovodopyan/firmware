@@ -40,6 +40,9 @@ const int slotMachineFrequencyMAX = 5;
 #define NUMBER_MAX 100
 #define PIXELS     6
 
+#define IR_24_KEY
+// else IR_7_KEY
+
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXELS, pinLEDs, NEO_GRB + NEO_KHZ800);
 
 const float brightnessStep = 5;
@@ -1282,20 +1285,24 @@ void ReadIRCommand()
 
         switch (res.value)
         {
-            // ON
+        // ON
         case 0xF7C03F:
             break;
-            // OFF
+        // OFF
         case 0xF740BF:
             break;
-            // Plus
-       // case 0xF7807F:
-
+        // Plus
+#ifdef IR_24_KEY
+        case 0xF7807F:
+#else
         case 0x937BB355:
         case 0xCED4C7A9:
+#endif
         {
             static bool plusToggled = false;
+#ifndef IR_24_KEY
             if (plusToggled)
+#endif
             {
                 Beep(50);
                 iterationsInMenu = 0;
@@ -1305,13 +1312,18 @@ void ReadIRCommand()
             break;
         }
         // Minus
-        //case 0xF700FF:
-
+#ifdef IR_24_KEY
+        case 0xF700FF:
+#else
         case 0x967BB80C:
         case 0xD1D4CC60:
+#endif
         {
             static bool minusToggled = false;
+
+#ifndef IR_24_KEY
             if (minusToggled)
+#endif
             {
                 Beep(50);
                 iterationsInMenu = 0;
@@ -1320,16 +1332,20 @@ void ReadIRCommand()
             minusToggled = !minusToggled;
             break;
         }
-        // W key
-        // case 0xF7E01F:
+        // W key (menu)
+#ifdef IR_24_KEY
+        case 0xF7E01F:
         //case 0x9BA392C1:
         //case 0xFFFFFFFF:
-
+#else
         case 0x971BB598:
         case 0x5BC2A144:
+#endif
         {
             static bool menuToggled = false;
+#ifndef IR_24_KEY
             if (menuToggled)
+#endif
             {
                 Beep(50);
                 iterationsInMenu = 0;
