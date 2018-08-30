@@ -52,6 +52,8 @@ unsigned char brightnessG = 0;
 unsigned char brightnessB = 0;
 
 bool beepOnHour = false;
+bool beeped = false;
+
 bool pressed = false;
 bool HoursMode12 = false;
 
@@ -1103,14 +1105,20 @@ void DisplayTime(bool blink = false)
     unsigned char minutes = now.minute();
     unsigned char seconds = now.second();
 
-    if (seconds == 56 && minutes == 0 && beepOnHour)
+    if (seconds == 0 && minutes == 0 && beepOnHour && !beeped)
     {
         // Beep once on hour start.
         Beep(50);
+        beeped = true;
+    }
+
+    if (seconds == 30)
+    {
+        beeped = false;
     }
 
     // if is time to show date and prevent cathode poisoning.
-    if (seconds == 56 && (minutes % slotMachineFrequency) == 0)
+    if (seconds == 56 && (minutes % slotMachineFrequency) == 0 && slotMachineFrequency)
     {
         ScrollFromTimeToDate();
         return;
@@ -1218,7 +1226,7 @@ void ProcessButton()
     unsigned char minutes = now.minute();
     unsigned char seconds = now.second();
 
-    if (seconds == 0 && (minutes % 2) == 0)
+    if (seconds == 30 && (minutes % 2) == 0)
     {
         sleep = TimeToSleep();
 
@@ -1269,7 +1277,7 @@ void ReadEncoder()
         fireAlarm = false;
         iterationsButtonPressed = 0;
         iterationsInMenu = 0;
-        ProcessEncoderChange(encoder_B);
+        ProcessEncoderChange(!encoder_B);
     }
 
     //Store value of A for next time.
