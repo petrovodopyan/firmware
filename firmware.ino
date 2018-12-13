@@ -287,15 +287,11 @@ void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t thr
 {
     // Get the high and low order values for three pairs.
     unsigned char lowerFirst = one % 10;
-    unsigned char upperFirst = one - lowerFirst;
+    unsigned char upperFirst = one / 10;
     unsigned char lowerSecond = two % 10;
-    unsigned char upperSecond = two - lowerSecond;
+    unsigned char upperSecond = two / 10;
     unsigned char lowerThird = three % 10;
-    unsigned char upperThird = three - lowerThird;
-
-    if (upperThird >= 10) upperThird /= 10;
-    if (upperSecond >= 10) upperSecond /= 10;
-    if (upperFirst >= 10) upperFirst /= 10;
+    unsigned char upperThird = three / 10;
 
     if (one >= 100)
     {
@@ -942,15 +938,11 @@ void ScrollFromTimeToDate()
 
     // Get the high and low order values for three pairs.
     unsigned char lowerFirst = hours % 10;
-    unsigned char upperFirst = hours - lowerFirst;
+    unsigned char upperFirst = hours / 10;
     unsigned char lowerSecond = minutes % 10;
-    unsigned char upperSecond = minutes - lowerSecond;
+    unsigned char upperSecond = minutes / 10;
     unsigned char lowerThird = seconds % 10;
-    unsigned char upperThird = seconds - lowerThird;
-
-    if (upperThird >= 10) upperThird /= 10;
-    if (upperSecond >= 10) upperSecond /= 10;
-    if (upperFirst >= 10) upperFirst /= 10;
+    unsigned char upperThird = seconds / 10;
 
     for (int k = 0; k < 6; ++k)
     {
@@ -976,33 +968,33 @@ void ScrollFromTimeToDate()
         {
         case DDMMYY:
             {
-            if (k == 0) upperFirst = days - (days % 10);
+            if (k == 0) upperFirst = days / 10;
             if (k == 1) lowerFirst = days % 10;
-            if (k == 2) upperSecond = months - (months % 10);
+            if (k == 2) upperSecond = months / 10;
             if (k == 3) lowerSecond = months % 10;
-            if (k == 4) upperThird = years - (years % 10);
+            if (k == 4) upperThird = years / 10;
             if (k == 5) lowerThird = years % 10;
 
             break;
             }
         case MMDDYY:
             {
-            if (k == 0) upperFirst = months - (months % 10);
+            if (k == 0) upperFirst = months / 10;
             if (k == 1) lowerFirst = months % 10;
-            if (k == 2) upperSecond = days - (days % 10);
+            if (k == 2) upperSecond = days / 10;
             if (k == 3) lowerSecond = days % 10;
-            if (k == 4) upperThird = years - (years % 10);
+            if (k == 4) upperThird = years / 10;
             if (k == 5) lowerThird = years % 10;
 
             break;
             }
         case YYMMDD:
             {
-            if (k == 0) upperFirst = years - (years % 10);
+            if (k == 0) upperFirst = years / 10;
             if (k == 1) lowerFirst = years % 10;
-            if (k == 2) upperSecond = months - (months % 10);
+            if (k == 2) upperSecond = months / 10;
             if (k == 3) lowerSecond = months % 10;
-            if (k == 4) upperThird = days - (days % 10);
+            if (k == 4) upperThird = days / 10;
             if (k == 5) lowerThird = days % 10;
 
             break;
@@ -1026,33 +1018,33 @@ void ScrollFromTimeToDate()
     {
     case DDMMYY:
     {
-        upperFirst = days - (days % 10);
+        upperFirst = days / 10;
         lowerFirst = days % 10;
-        upperSecond = months - (months % 10);
+        upperSecond = months / 10;
         lowerSecond = months % 10;
-        upperThird = years - (years % 10);
+        upperThird = years / 10;
         lowerThird = years % 10;
 
         break;
     }
     case MMDDYY:
     {
-        upperFirst = months - (months % 10);
+        upperFirst = months / 10;
         lowerFirst = months % 10;
-        upperSecond = days - (days % 10);
+        upperSecond = days / 10;
         lowerSecond = days % 10;
-        upperThird = years - (years % 10);
+        upperThird = years / 10;
         lowerThird = years % 10;
 
         break;
     }
     case YYMMDD:
     {
-        upperFirst = years - (years % 10);
+        upperFirst = years / 10;
         lowerFirst = years % 10;
-        upperSecond = months - (months % 10);
+        upperSecond = months / 10;
         lowerSecond = months % 10;
-        upperThird = days - (days % 10);
+        upperThird = days / 10;
         lowerThird = days % 10;
 
         break;
@@ -1083,16 +1075,12 @@ void ScrollFromTimeToDate()
                 break;
         }
 
-        if (k == 0) upperFirst = hours - (hours % 10);
+        if (k == 0) upperFirst = hours / 10;
         if (k == 1) lowerFirst = hours % 10;
-        if (k == 2) upperSecond = minutes - (minutes % 10);
+        if (k == 2) upperSecond = minutes / 10;
         if (k == 3) lowerSecond = minutes % 10;
-        if (k == 4) upperThird = seconds - (seconds % 10);
+        if (k == 4) upperThird = seconds / 10;
         if (k == 5) lowerThird = seconds % 10;
-
-        if (upperThird >= 10) upperThird /= 10;
-        if (upperSecond >= 10) upperSecond /= 10;
-        if (upperFirst >= 10) upperFirst /= 10;
 
         if (MenuPressed())
             break;
@@ -1302,6 +1290,7 @@ void ReadIRCommand()
         // Plus
 #ifdef IR_24_KEY
         case 0xF7807F:
+        case 0xFFB847:
 #else
         case 0x937BB355:
         case 0xCED4C7A9:
@@ -1322,6 +1311,7 @@ void ReadIRCommand()
         // Minus
 #ifdef IR_24_KEY
         case 0xF700FF:
+        case 0xFF906F:
 #else
         case 0x967BB80C:
         case 0xD1D4CC60:
@@ -1343,6 +1333,7 @@ void ReadIRCommand()
         // W key (menu)
 #ifdef IR_24_KEY
         case 0xF7E01F:
+        case 0xFFA857:
         //case 0x9BA392C1:
         //case 0xFFFFFFFF:
 #else
