@@ -33,8 +33,14 @@ const unsigned char pinIR = 9;
 const unsigned int spinningTime = 3;
 const int iterationsDimmDigits = 35;
 
+int sensorTime = 1;
+long iterationSensorStep = 5000; // 5000 ~ approximately 1 minute.
+long iterationSensor = sensorTime * iterationSensorStep;
+
 int slotMachineFrequency = 0;
 const int slotMachineFrequencyMAX = 5;
+
+const int sensorTimeMAX = 5;
 
 // Constants and defines.
 #define NUMBER_MAX 100
@@ -54,8 +60,13 @@ unsigned char brightnessB = 0;
 bool beepOnHour = false;
 bool beeped = false;
 
+bool powerON = true;
+
 bool pressed = false;
 bool HoursMode12 = false;
+
+bool showDate = true;
+bool sensorActivated = true;
 
 int tubeBrightness = 1;
 const int tubeBrightnessStep = 10;
@@ -106,11 +117,11 @@ enum DateFormat
 
 enum ScrollMode
 {
-  NONE = 0,
-  CHANGING,
- // POPULATE,
-  UPDATE,
-  SCROLL_MAX
+    NONE = 0,
+    CHANGING,
+    // POPULATE,
+    UPDATE,
+    SCROLL_MAX
 };
 
 int currentFormat = MMDDYY;
@@ -118,37 +129,41 @@ int scrollMode = CHANGING;
 
 enum Menu
 {
-    MENU_NONE               = 0,
+    MENU_NONE = 0,
 
-    BacklightRed            = 1,
-    BacklightGreen          = 2,
-    BacklightBlue           = 3,
+    BacklightRed = 1,
+    BacklightGreen = 2,
+    BacklightBlue = 3,
 
-    AlarmMode               = 4,
-    AlarmHour               = 5,
-    AlarmMinute             = 6,
+    AlarmMode = 4,
+    AlarmHour = 5,
+    AlarmMinute = 6,
 
-    DotSetup                = 7,
-    BeepSetup               = 8,
+    DotSetup = 7,
+    BeepSetup = 8,
 
-    TubeBrightness          = 9,
-    SlotMachine             = 10,
-    SpinChangingNumbers     = 11,
-    AnimateColorsMode       = 12,
+    TubeBrightness = 9,
+    SlotMachine = 10,
+    SpinChangingNumbers = 11,
+    AnimateColorsMode = 12,
 
-    HourModeSetup           = 13,
-    DateMode                = 14,
+    HourModeSetup = 13,
+    DateMode = 14,
 
-    HoursSetup              = 15,
-    MinutesSetup            = 16,
-    SecondsSetup            = 17,
+    HoursSetup = 15,
+    MinutesSetup = 16,
+    SecondsSetup = 17,
 
-    MonthSetup              = 18,
-    DaySetup                = 19,
-    YearSetup               = 20,
+    MonthSetup = 18,
+    DaySetup = 19,
+    YearSetup = 20,
 
-    SleepStart              = 21,
-    SleepEnd                = 22,
+    SleepStart = 21,
+    SleepEnd = 22,
+
+    ShowDate = 23,
+    MotionSensorTime = 24,
+    ActivateSensor = 25,
 
     MENU_MAX,
 };
@@ -173,6 +188,19 @@ void SetBackgroundColor(unsigned char red, unsigned char green, unsigned char bl
     }
 
     pixels.show();
+}
+
+void SaveRGBColors(unsigned char red, unsigned char green, unsigned char blue)
+{
+    brightnessR = red;
+    brightnessG = green;
+    brightnessB = blue;
+
+    SetBackgroundColor(red, green, blue);
+
+    EEPROM.write(BacklightBlue, blue);
+    EEPROM.write(BacklightGreen, green);
+    EEPROM.write(BacklightRed, red);
 }
 
 void RestoreBacklight()
@@ -316,60 +344,60 @@ void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t thr
 
     switch (mode)
     {
-        case CHANGING:
+    case CHANGING:
+    {
+        if (s_lowerThird != lowerThird)
         {
-            if (s_lowerThird != lowerThird)
+            for (int i = 0; i < 10; ++i)
+            {
+                int numbers[6] = {
+                  (s_upperFirst != upperFirst) ? ((upperFirst + i) % 10) : upperFirst,
+                  (s_lowerFirst != lowerFirst) ? ((lowerFirst + i) % 10) : lowerFirst,
+                  (s_upperSecond != upperSecond) ? ((upperSecond + i) % 10) : upperSecond,
+                  (s_lowerSecond != lowerSecond) ? ((lowerSecond + i) % 10) : lowerSecond,
+                  (s_upperThird != upperThird) ? ((upperThird + i) % 10) : upperThird,
+                  (s_lowerThird != lowerThird) ? ((lowerThird + i) % 10) : lowerThird
+                };
+
+                for (int j = 0; j < spinningTime; ++j)
+                {
+                    DisplayNumbers(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], numbers[5]);
+                    delayMicroseconds(1100);
+                }
+            }
+        }
+        break;
+    }
+    case UPDATE:
+    {
+        if (s_lowerThird != lowerThird)
+        {
+            for (int k = 0; k < 6; ++k)
             {
                 for (int i = 0; i < 10; ++i)
                 {
-                    int numbers[6] = {
-                        (s_upperFirst != upperFirst) ? ((upperFirst + i) % 10) : upperFirst,
-                        (s_lowerFirst != lowerFirst) ? ((lowerFirst + i) % 10) : lowerFirst,
-                        (s_upperSecond != upperSecond) ? ((upperSecond + i) % 10) : upperSecond,
-                        (s_lowerSecond != lowerSecond) ? ((lowerSecond + i) % 10) : lowerSecond,
-                        (s_upperThird != upperThird) ? ((upperThird + i) % 10) : upperThird,
-                        (s_lowerThird != lowerThird) ? ((lowerThird + i) % 10) : lowerThird
-                    };
-
-                    for (int j = 0; j < spinningTime; ++j)
+                    for (unsigned char j = 0; j < 2; ++j)
                     {
-                        DisplayNumbers(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], numbers[5]);
-                        delayMicroseconds(1100);
-                    }
-                }
-            }
-            break;
-        }
-        case UPDATE:
-        {
-            if (s_lowerThird != lowerThird)
-            {
-                for (int k = 0; k < 6; ++k)
-                {
-                    for (int i = 0; i < 10; ++i)
-                    {
-                        for (unsigned char j = 0; j < 2; ++j)
-                        {
-                            DisplayNumbers(
-                              (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
-                              (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
-                              (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
-                              (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
-                              (k == 4) ? ((upperThird + i) % 10) : upperThird,
-                              (k == 5) ? ((lowerThird + i) % 10) : lowerThird
+                        DisplayNumbers(
+                            (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
+                            (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
+                            (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
+                            (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
+                            (k == 4) ? ((upperThird + i) % 10) : upperThird,
+                            (k == 5) ? ((lowerThird + i) % 10) : lowerThird
                             );
-                             delayMicroseconds(1000);
-                        }
-                        if (MenuPressed())
-                            break;
+                        delayMicroseconds(1000);
                     }
                     if (MenuPressed())
                         break;
                 }
+                if (MenuPressed())
+                    break;
             }
-
-            break;
         }
+
+        break;
+    }
     }
     DisplayNumbers(upperFirst, lowerFirst, upperSecond, lowerSecond, upperThird, lowerThird);
 
@@ -467,6 +495,14 @@ void ReadSettings()
         slotMachineFrequency = 1;
     }
 
+    sensorTime = EEPROM.read(MotionSensorTime);
+
+    if (sensorTime > sensorTimeMAX)
+    {
+        sensorTime = 1;
+    }
+
+
     scrollMode = EEPROM.read(SpinChangingNumbers);
 
     if (scrollMode >= SCROLL_MAX)
@@ -483,7 +519,9 @@ void ReadSettings()
 
     activateAnimation = EEPROM.read(AnimateColorsMode);
 
+    sensorActivated = EEPROM.read(ActivateSensor);
     HoursMode12 = EEPROM.read(HourModeSetup);
+    showDate = EEPROM.read(ShowDate);
     sleepHourStart = EEPROM.read(SleepStart);
     sleepHourEnd = EEPROM.read(SleepEnd);
 
@@ -660,6 +698,7 @@ void ProcessEncoderChange(bool decrease)
     {
         activateAnimation = !activateAnimation;
         EEPROM.write(menu, activateAnimation);
+        SetBackgroundColor(brightnessR, brightnessG, brightnessB);
         break;
     }
     case DateMode:
@@ -796,6 +835,26 @@ void ProcessEncoderChange(bool decrease)
         alarmMinute = (alarmMinute < 0 ? 60 : alarmMinute);
         alarmMinute = (alarmMinute > 60 ? 0 : alarmMinute);
         EEPROM.write(menu, alarmMinute);
+        break;
+    }
+    case ShowDate:
+    {
+        showDate = !showDate;
+        EEPROM.write(menu, showDate);
+        break;
+    }
+    case ActivateSensor:
+    {
+        sensorActivated = !sensorActivated;
+        EEPROM.write(menu, sensorActivated);
+        break;
+    }
+    case MotionSensorTime:
+    {
+        sensorTime += (decrease ? 1 : -1);
+        sensorTime = (sensorTime < 1 ? 1 : sensorTime);
+        sensorTime = (sensorTime > sensorTimeMAX ? 1 : sensorTime);
+        EEPROM.write(menu, sensorTime);
         break;
     }
     default:
@@ -948,26 +1007,26 @@ void ScrollFromTimeToDate()
     {
         for (int i = 0; i < 10; ++i)
         {
-        for (unsigned char j = 0; j < 2; ++j)
-        {
-            DisplayNumbers(
-            (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
-            (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
-            (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
-            (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
-            (k == 4) ? ((upperThird + i) % 10) : upperThird,
-            (k == 5) ? ((lowerThird + i) % 10) : lowerThird
-            );
-            delayMicroseconds(1000);
-        }
-        if (MenuPressed())
-            break;
+            for (unsigned char j = 0; j < 2; ++j)
+            {
+                DisplayNumbers(
+                    (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
+                    (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
+                    (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
+                    (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
+                    (k == 4) ? ((upperThird + i) % 10) : upperThird,
+                    (k == 5) ? ((lowerThird + i) % 10) : lowerThird
+                    );
+                delayMicroseconds(1000);
+            }
+            if (MenuPressed())
+                break;
         }
 
         switch (currentFormat)
         {
         case DDMMYY:
-            {
+        {
             if (k == 0) upperFirst = days / 10;
             if (k == 1) lowerFirst = days % 10;
             if (k == 2) upperSecond = months / 10;
@@ -976,9 +1035,9 @@ void ScrollFromTimeToDate()
             if (k == 5) lowerThird = years % 10;
 
             break;
-            }
+        }
         case MMDDYY:
-            {
+        {
             if (k == 0) upperFirst = months / 10;
             if (k == 1) lowerFirst = months % 10;
             if (k == 2) upperSecond = days / 10;
@@ -987,9 +1046,9 @@ void ScrollFromTimeToDate()
             if (k == 5) lowerThird = years % 10;
 
             break;
-            }
+        }
         case YYMMDD:
-            {
+        {
             if (k == 0) upperFirst = years / 10;
             if (k == 1) lowerFirst = years % 10;
             if (k == 2) upperSecond = months / 10;
@@ -998,11 +1057,11 @@ void ScrollFromTimeToDate()
             if (k == 5) lowerThird = days % 10;
 
             break;
-            }
+        }
         }
 
         if (MenuPressed())
-        break;
+            break;
     }
 
     for (int i = 0; i < 400; ++i)
@@ -1062,13 +1121,13 @@ void ScrollFromTimeToDate()
             for (unsigned char j = 0; j < 2; ++j)
             {
                 DisplayNumbers(
-                (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
-                (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
-                (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
-                (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
-                (k == 4) ? ((upperThird + i) % 10) : upperThird,
-                (k == 5) ? ((lowerThird + i) % 10) : lowerThird
-                );
+                    (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
+                    (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
+                    (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
+                    (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
+                    (k == 4) ? ((upperThird + i) % 10) : upperThird,
+                    (k == 5) ? ((lowerThird + i) % 10) : lowerThird
+                    );
                 delayMicroseconds(1000);
             }
             if (MenuPressed())
@@ -1108,7 +1167,14 @@ void DisplayTime(bool blink = false)
     // if is time to show date and prevent cathode poisoning.
     if (seconds == 56 && (minutes % slotMachineFrequency) == 0 && slotMachineFrequency)
     {
-        ScrollFromTimeToDate();
+        if (showDate)
+        {
+            ScrollFromTimeToDate();
+        }
+        else
+        {
+            SpinAllNumbers(60);
+        }
         return;
     }
 
@@ -1200,6 +1266,15 @@ void ProcessMenu()
     case AlarmMinute:
         DisplayThreeNumbers((byte)menu, alarmHour, blink ? NUMBER_MAX : alarmMinute);
         break;
+    case ShowDate:
+        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : showDate);
+        break;
+    case ActivateSensor:
+        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : sensorActivated);
+        break;
+    case MotionSensorTime:
+        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : sensorTime);
+        break;
     }
 
     if (iterationsShowed > (iterationsDimmDigits * 2))
@@ -1235,7 +1310,8 @@ void ProcessButton()
         {
             pressed = false;
             menu = MENU_NONE;
-            sleep = true;
+            iterationsButtonPressed = 0;
+            //sleep = true;
         }
     }
     else if (pressed && !sleep)
@@ -1261,11 +1337,14 @@ void ReadEncoder()
     if ((!encoder_A) && (encoder_A_prev))
     {
         sleep = false;
+        powerON = true;
         RestoreBacklight();
         fireAlarm = false;
         iterationsButtonPressed = 0;
         iterationsInMenu = 0;
         ProcessEncoderChange(!encoder_B);
+
+        iterationSensor = sensorTime * iterationSensorStep;
     }
 
     //Store value of A for next time.
@@ -1281,12 +1360,36 @@ void ReadIRCommand()
 
         switch (res.value)
         {
-        // ON
-        case 0xF7C03F:
+        case 0xF7C03F: // ON
+        {
+            powerON = true;
+            Beep(50);
             break;
-        // OFF
-        case 0xF740BF:
+        }
+        case 0xF740BF: // OFF
+        {
+            Beep(50);
+            powerON = false;
             break;
+        }
+        case 16195807: // Red
+        {
+            SaveRGBColors(brightnessMAX, 0, 0);
+            Beep(50);
+            break;
+        }
+        case 16228447: // Green
+        {
+            SaveRGBColors(0, brightnessMAX, 0);
+            Beep(50);
+            break;
+        }
+        case 16212127: // Blue
+        {
+            SaveRGBColors(0, 0, brightnessMAX);
+            Beep(50);
+            break;
+        }
         // Plus
 #ifdef IR_24_KEY
         case 0xF7807F:
@@ -1334,8 +1437,8 @@ void ReadIRCommand()
 #ifdef IR_24_KEY
         case 0xF7E01F:
         case 0xFFA857:
-        //case 0x9BA392C1:
-        //case 0xFFFFFFFF:
+            //case 0x9BA392C1:
+            //case 0xFFFFFFFF:
 #else
         case 0x971BB598:
         case 0x5BC2A144:
@@ -1367,11 +1470,11 @@ void ReadIRCommand()
     }
 }
 
-void ReadPirSensor()
+void ReadMotionSensor()
 {
     static bool sensorPlugged = false;
 
-    bool state = PIRSensorIsPlugged();
+    bool state = PIRSensorIsPlugged() || sensorActivated;
 
     if (state != sensorPlugged)
     {
