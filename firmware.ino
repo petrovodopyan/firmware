@@ -142,30 +142,30 @@ enum Menu
     DotSetup = 7,
     BeepSetup = 8,
 
-    TubeBrightness = 9,
-    SlotMachine = 10,
-    SpinChangingNumbers = 11,
-    AnimateColorsMode = 12,
+    SlotMachine,
+    SpinChangingNumbers,
+    AnimateColorsMode,
 
-    HourModeSetup = 13,
-    DateMode = 14,
+    HourModeSetup,
+    DateMode,
 
-    HoursSetup = 15,
-    MinutesSetup = 16,
-    SecondsSetup = 17,
+    HoursSetup,
+    MinutesSetup,
+    SecondsSetup,
 
-    MonthSetup = 18,
-    DaySetup = 19,
-    YearSetup = 20,
+    MonthSetup,
+    DaySetup,
+    YearSetup,
 
-    SleepStart = 21,
-    SleepEnd = 22,
+    SleepStart,
+    SleepEnd,
 
-    ShowDate = 23,
-    MotionSensorTime = 24,
-    ActivateSensor = 25,
+    ShowDate,
+    MotionSensorTime,
+    ActivateSensor,
 
     MENU_MAX,
+    TubeBrightness,
 };
 
 void Beep(int size)
@@ -1487,11 +1487,9 @@ void ReadMotionSensor()
 
     if (sensorPlugged)
     {
-        static long iterationPIRSensor = 0;
-
-        if (iterationPIRSensor < 0)
+        if (iterationSensor < 0)
         {
-            iterationPIRSensor = 0;
+            iterationSensor = 0;
 
             if (digitalRead(pinPirSensor) == LOW)
             {
@@ -1501,11 +1499,11 @@ void ReadMotionSensor()
             {
                 sleep = false;
                 RestoreBacklight();
-                iterationPIRSensor = 30000;
+                iterationSensor = sensorTime * iterationSensorStep;
             }
         }
 
-        iterationPIRSensor--;
+        iterationSensor--;
     }
 }
 
@@ -1516,7 +1514,7 @@ void loop()
     ReadIRCommand();
     ProcessButton();
     ReadEncoder();
-    ReadPirSensor();
+    ReadMotionSensor();
     CheckAlarm();
 
     if (fireAlarm)
@@ -1527,7 +1525,7 @@ void loop()
         return;
     }
 
-    if (sleep)
+    if (sleep || !powerON)
     {
         pressed = false;
         DimmDot();
