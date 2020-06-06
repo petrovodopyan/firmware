@@ -8,25 +8,27 @@
 // Pins definition.
 const unsigned char pinSDI = A0;
 const unsigned char pinCLK = A1;
-const unsigned char pinLE = 7;
-const unsigned char pinHV_Brightness = 6;
+const unsigned char pinLE = 6;
+const unsigned char pinBLNK = 7;
+
+const unsigned char pinHV_Brightness = 1;
 
 const uint8_t anode0 = 2;
 const uint8_t anode1 = 3;
 const uint8_t anode2 = 4;
 
-const unsigned char pinPirSensor = 0;
+const unsigned char pinPirSensor = A3;
 const unsigned char pinPirSensorPlug = 1;
 
 const unsigned char pinBuzzer = A2;
-const unsigned char pinDot = 8;
+const unsigned char pinDot = 10;
 
 const unsigned char pinButton = 5;
 const unsigned char pinEncoderA = 6;
 const unsigned char pinEncoderB = 7;
 
-const unsigned char pinLEDs = 10;
-const unsigned char pin12VSwitch = 11;
+const unsigned char pinRGB = 11;
+const unsigned char pin12VSwitch = 8;
 
 const unsigned char pinIR = 9;
 
@@ -49,7 +51,7 @@ const int sensorTimeMAX = 5;
 #define IR_24_KEY
 // else IR_7_KEY
 
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXELS, pinLEDs, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXELS, pinRGB, NEO_GRB + NEO_KHZ800);
 
 const float brightnessStep = 5;
 const float brightnessMAX = 50;
@@ -290,13 +292,13 @@ unsigned int writeTwoNumbers(unsigned char left, unsigned char right, unsigned c
         byte3 &= ~(1 << 3);
     }
 
-    PORTD &= ~(1 << 7); // digitalWrite(pinLE, LOW);
+    PORTD &= ~(1 << 6); // digitalWrite(pinLE, LOW);
 
     shift5812PJ(byte3);
     shift5812PJ(byte2);
     shift5812PJ(byte1);
 
-    PORTD |= 1 << 7; // digitalWrite(pinLE, HIGH);
+    PORTD |= 1 << 6; // digitalWrite(pinLE, HIGH);
 
     PORTD |= 1 << anode; //digitalWrite(anode, HIGH);
     delay(1);
@@ -556,10 +558,12 @@ void setup()
     pinMode(pinSDI, OUTPUT);
     pinMode(pinCLK, OUTPUT);
     pinMode(pinLE, OUTPUT);
+    pinMode(pinBLNK, OUTPUT);
     pinMode(pin12VSwitch, OUTPUT);
     pinMode(pinHV_Brightness, OUTPUT);
 
     digitalWrite(pin12VSwitch, HIGH);
+    digitalWrite(pinBLNK, LOW);
 
     // Anode pins.
     pinMode(anode0, OUTPUT);
@@ -906,7 +910,7 @@ bool TimeToSleep()
 
 void DimmDot()
 {
-    PORTB &= ~(1 << 0);
+    PORTB &= ~(1 << 2);
 }
 
 void SetDot()
@@ -935,11 +939,11 @@ void SetDot()
 
     if (lightUp)
     {
-        PORTB |= 1 << 0;
+        PORTB |= 1 << 2;
     }
     else
     {
-        PORTB &= ~(1 << 0);
+        PORTB &= ~(1 << 2);
     }
 }
 
