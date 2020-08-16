@@ -18,7 +18,6 @@ const uint8_t anode1 = 3;
 const uint8_t anode2 = 4;
 
 const unsigned char pinPirSensor = A3;
-const unsigned char pinPirSensorPlug = 1;
 
 const unsigned char pinBuzzer = A2;
 const unsigned char pinDot = 10;
@@ -253,11 +252,6 @@ void shift5812PJ(uint8_t dataByte)
         PORTC |= 1 << 1; // digitalWrite(pinCLK, HIGH);
         PORTC &= ~(1 << 1); // digitalWrite(pinCLK, LOW);
     }
-}
-
-bool PIRSensorIsPlugged()
-{
-    return ((PIND & (1 << pinPirSensorPlug)) == 0);
 }
 
 unsigned int writeTwoNumbers(unsigned char left, unsigned char right, unsigned char anode)
@@ -590,7 +584,6 @@ void setup()
     rtc.begin();
 
     pinMode(pinPirSensor, INPUT_PULLUP);
-    pinMode(pinPirSensorPlug, INPUT_PULLUP);
 
     ReadSettings();
 
@@ -1289,24 +1282,6 @@ void ProcessMenu()
 
 void ProcessButton()
 {
-    unsigned char hours = now.hour();
-    unsigned char minutes = now.minute();
-    unsigned char seconds = now.second();
-
-    if (seconds == 30 && (minutes % 2) == 0)
-    {
-        sleep = TimeToSleep();
-
-        if (sleep)
-        {
-            return;
-        }
-        else
-        {
-            RestoreBacklight();
-        }
-    }
-
     if (MenuPressed())
     {
         pressed = true;
@@ -1323,6 +1298,8 @@ void ProcessButton()
         iterationsButtonPressed = 0;
         iterationsInMenu = 0;
         pressed = false;
+        fireAlarm = false;
+
         RestoreBacklight();
         Beep(50);
 
@@ -1361,6 +1338,7 @@ void ReadIRCommand()
     {
         sleep = false;
         RestoreBacklight();
+        fireAlarm = false;
 
         switch (res.value)
         {
@@ -1476,20 +1454,7 @@ void ReadIRCommand()
 
 void ReadMotionSensor()
 {
-    static bool sensorPlugged = false;
-
-    bool state = PIRSensorIsPlugged() || sensorActivated;
-
-    if (state != sensorPlugged)
-    {
-        Beep(50);
-        sleep = false;
-        RestoreBacklight();
-    }
-
-    sensorPlugged = state;
-
-    if (sensorPlugged)
+    if (sensorActivated)
     {
         if (iterationSensor < 0)
         {
@@ -1523,10 +1488,24 @@ void loop()
 
     if (fireAlarm)
     {
-        Beep(100);
-        DisplayThreeNumbers(0, alarmHour, alarmMinute);
-        delay(100);
-        return;
+        static int second = now.second();
+
+        if (second != now.second())
+        {
+            Beep(100);
+        }
+
+        second = now.second();
+    }
+
+    if (now.second() == 30 && (now.minute() % 2) == 0)
+    {
+        sleep = TimeToSleep();
+
+        if (!sleep && powerON && !sensorActivated) // exit sleep timer
+        {
+            RestoreBacklight();
+        }
     }
 
     if (sleep || !powerON)
