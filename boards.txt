@@ -1,0 +1,24 @@
+##############################################################
+
+atmega328_8mhz.name=ATmega328 (8MHz internal OSC)
+atmega328_8mhz.upload.protocol=stk500
+atmega328_8mhz.upload.maximum_size=30720
+atmega328_8mhz.upload.speed=9600
+
+atmega328_8mhz.bootloader.low_fuses=0xe2
+atmega328_8mhz.bootloader.high_fuses=0xde
+atmega328_8mhz.bootloader.extended_fuses=0xFD
+atmega328_8mhz.bootloader.path=optiboot
+atmega328_8mhz.bootloader.file=optiboot/optiboot_atmega328.hex
+atmega328_8mhz.bootloader.unlock_bits=0x3F
+atmega328_8mhz.bootloader.lock_bits=0x0F
+
+atmega328_8mhz.build.mcu=atmega328p
+atmega328_8mhz.build.f_cpu=8000000L
+atmega328_8mhz.build.core=arduino
+atmega328_8mhz.build.variant=standard
+atmega328_8mhz.build.board=AVR_ATMEGA328_NO_CRYSTAL
+
+atmega328_8mhz.upload.tool=avrdude
+atmega328_8mhz.bootloader.tool=avrdude
+############################################################## 
