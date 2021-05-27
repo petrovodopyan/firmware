@@ -47,8 +47,8 @@ const int sensorTimeMAX = 5;
 #define NUMBER_MAX 100
 #define PIXELS     6
 
-#define IR_24_KEY
-// else IR_7_KEY
+//#define IR_24_KEY
+#define IR_17_KEY
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXELS, pinRGB, NEO_GRB + NEO_KHZ800);
 
@@ -1343,32 +1343,81 @@ void ReadIRCommand()
         switch (res.value)
         {
         case 0xF7C03F: // ON
+        case 16756815:
         {
             powerON = true;
             Beep(50);
             break;
         }
         case 0xF740BF: // OFF
+        case 16738455:
         {
             Beep(50);
             powerON = false;
             break;
         }
+
         case 16195807: // Red
+        case 16753245: // 1
         {
             SaveRGBColors(brightnessMAX, 0, 0);
             Beep(50);
             break;
         }
         case 16228447: // Green
+        case 16736925:
         {
             SaveRGBColors(0, brightnessMAX, 0);
             Beep(50);
             break;
         }
         case 16212127: // Blue
+        case 16769565:
         {
             SaveRGBColors(0, 0, brightnessMAX);
+            Beep(50);
+            break;
+        }
+        case 16720605: // 4
+        {
+            SaveRGBColors(brightnessMAX, brightnessMAX, 0);
+            Beep(50);
+            break;
+        }
+        case 16712445: // 5
+        {
+            SaveRGBColors(0, brightnessMAX, brightnessMAX);
+            Beep(50);
+            break;
+        }
+        case 16761405: // 6
+        {
+            SaveRGBColors(brightnessMAX, 0, brightnessMAX);
+            Beep(50);
+            break;
+        }
+        case 16769055: // 7
+        {
+            SaveRGBColors(brightnessMAX, brightnessMAX / 2, 0);
+            Beep(50);
+            break;
+        }
+        case 16754775: // 8
+        {
+            SaveRGBColors(brightnessMAX, 0, brightnessMAX / 2);
+            Beep(50);
+            break;
+        }
+        case 16748655: // 9
+        {
+            SaveRGBColors(0, brightnessMAX / 2, brightnessMAX / 2);
+            Beep(50);
+            break;
+        }
+
+        case 16750695: // 0 - no color
+        {
+            SaveRGBColors(0, 0, 0);
             Beep(50);
             break;
         }
@@ -1377,20 +1426,13 @@ void ReadIRCommand()
         case 0xF7807F:
         case 0xFFB847:
 #else
-        case 0x937BB355:
-        case 0xCED4C7A9:
+        case 16734885:
+        case 16718055:
 #endif
         {
-            static bool plusToggled = false;
-#ifndef IR_24_KEY
-            if (plusToggled)
-#endif
-            {
-                Beep(50);
-                iterationsInMenu = 0;
-                ProcessEncoderChange(true);
-            }
-            plusToggled = !plusToggled;
+            Beep(50);
+            iterationsInMenu = 0;
+            ProcessEncoderChange(true);
             break;
         }
         // Minus
@@ -1398,53 +1440,31 @@ void ReadIRCommand()
         case 0xF700FF:
         case 0xFF906F:
 #else
-        case 0x967BB80C:
-        case 0xD1D4CC60:
+        case 16716015:
+        case 16730805:
 #endif
         {
-            static bool minusToggled = false;
-
-#ifndef IR_24_KEY
-            if (minusToggled)
-#endif
-            {
-                Beep(50);
-                iterationsInMenu = 0;
-                ProcessEncoderChange(false);
-            }
-            minusToggled = !minusToggled;
+            Beep(50);
+            iterationsInMenu = 0;
+            ProcessEncoderChange(false);
             break;
         }
         // W key (menu)
 #ifdef IR_24_KEY
         case 0xF7E01F:
         case 0xFFA857:
-            //case 0x9BA392C1:
-            //case 0xFFFFFFFF:
 #else
-        case 0x971BB598:
-        case 0x5BC2A144:
+        case 16726215:
 #endif
         {
-            static bool menuToggled = false;
-#ifndef IR_24_KEY
-            if (menuToggled)
-#endif
+            Beep(50);
+            iterationsInMenu = 0;
+            if (++menu == MENU_MAX)
             {
-                Beep(50);
-                iterationsInMenu = 0;
-                if (++menu == MENU_MAX)
-                {
-                    menu = MENU_NONE;
-                }
+                menu = MENU_NONE;
             }
-
-            menuToggled = !menuToggled;
             break;
         }
-        default:
-            irrcv.resume();
-            return;
         }
         // Receive the next value
 
