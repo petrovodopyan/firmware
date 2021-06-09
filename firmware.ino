@@ -11,7 +11,6 @@ const unsigned char pinCLK = A1;
 const unsigned char pinLE = 6;
 const unsigned char pinBLNK = 7;
 
-const unsigned char pinHV_Brightness = 1;
 
 const uint8_t anode0 = 2;
 const uint8_t anode1 = 3;
@@ -70,10 +69,6 @@ bool HoursMode12 = false;
 
 bool showDate = true;
 bool sensorActivated = true;
-
-int tubeBrightness = 1;
-const int tubeBrightnessStep = 10;
-const int tubeBrightnessMAX = 25;
 
 bool sleep = false;
 bool countDownMode = false;
@@ -484,15 +479,6 @@ void ReadSettings()
 
     silentModel = EEPROM.read(SilentMode);
 
-    tubeBrightness = EEPROM.read(TubeBrightness);
-
-    if (tubeBrightness > tubeBrightnessMAX)
-    {
-        tubeBrightness = tubeBrightnessMAX;
-    }
-
-    analogWrite(pinHV_Brightness, tubeBrightness * tubeBrightnessStep);
-
     slotMachineFrequency = EEPROM.read(SlotMachine);
 
     if (slotMachineFrequency > slotMachineFrequencyMAX)
@@ -563,7 +549,6 @@ void setup()
     pinMode(pinLE, OUTPUT);
     pinMode(pinBLNK, OUTPUT);
     pinMode(pin12VSwitch, OUTPUT);
-    pinMode(pinHV_Brightness, OUTPUT);
 
     digitalWrite(pin12VSwitch, HIGH);
     digitalWrite(pinBLNK, LOW);
@@ -678,15 +663,6 @@ void ProcessEncoderChange(bool decrease)
     {
         silentModel = !silentModel;
         EEPROM.write(menu, silentModel);
-        break;
-    }
-    case TubeBrightness:
-    {
-        tubeBrightness += (decrease ? 1 : -1);
-        tubeBrightness = (tubeBrightness < 1 ? tubeBrightnessMAX : tubeBrightness);
-        tubeBrightness = (tubeBrightness > tubeBrightnessMAX ? 1 : tubeBrightness);
-        analogWrite(pinHV_Brightness, tubeBrightness * tubeBrightnessStep);
-        EEPROM.write(menu, tubeBrightness);
         break;
     }
     case SlotMachine:
@@ -1253,9 +1229,6 @@ void ProcessMenu()
         break;
     case SilentMode:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : silentModel);
-        break;
-    case TubeBrightness:
-        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : tubeBrightness);
         break;
     case SlotMachine:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : slotMachineFrequency);
