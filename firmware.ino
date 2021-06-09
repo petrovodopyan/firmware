@@ -61,6 +61,8 @@ unsigned char brightnessB = 0;
 bool beepOnHour = false;
 bool beeped = false;
 
+bool silentModel = false;
+
 bool powerON = true;
 
 bool pressed = false;
@@ -141,7 +143,7 @@ enum Menu
     AlarmMinute = 6,
 
     DotSetup = 7,
-    BeepSetup = 8,
+    BeepHourlyMode = 8,
 
     SlotMachine,
     SpinChangingNumbers,
@@ -165,13 +167,18 @@ enum Menu
     MotionSensorTime,
     ActivateSensor,
 
+    SilentMode,
+
     MENU_MAX,
     TubeBrightness,
 };
 
 void Beep(int size)
 {
-    NewTone(pinBuzzer, 4000, 50);
+    if (!silentModel)
+    {
+        NewTone(pinBuzzer, 4000, 50);
+    }
 }
 
 bool MenuPressed()
@@ -473,7 +480,9 @@ void ReadSettings()
         clockMode = Blink;
     }
 
-    beepOnHour = EEPROM.read(BeepSetup);
+    beepOnHour = EEPROM.read(BeepHourlyMode);
+
+    silentModel = EEPROM.read(SilentMode);
 
     tubeBrightness = EEPROM.read(TubeBrightness);
 
@@ -659,10 +668,16 @@ void ProcessEncoderChange(bool decrease)
         EEPROM.write(menu, clockMode);
         break;
     }
-    case BeepSetup:
+    case BeepHourlyMode:
     {
         beepOnHour = !beepOnHour;
         EEPROM.write(menu, beepOnHour);
+        break;
+    }
+    case SilentMode:
+    {
+        silentModel = !silentModel;
+        EEPROM.write(menu, silentModel);
         break;
     }
     case TubeBrightness:
@@ -1233,8 +1248,11 @@ void ProcessMenu()
     case DotSetup:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : clockMode);
         break;
-    case BeepSetup:
+    case BeepHourlyMode:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : beepOnHour);
+        break;
+    case SilentMode:
+        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : silentModel);
         break;
     case TubeBrightness:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : tubeBrightness);
@@ -1410,7 +1428,7 @@ void ReadIRCommand()
         }
         case 16748655: // 9
         {
-            SaveRGBColors(0, brightnessMAX / 2, brightnessMAX / 2);
+            SaveRGBColors(brightnessMAX, brightnessMAX, brightnessMAX);
             Beep(50);
             break;
         }
