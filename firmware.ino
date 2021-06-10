@@ -46,13 +46,13 @@ const int sensorTimeMAX = 5;
 #define NUMBER_MAX 100
 #define PIXELS     6
 
+Adafruit_NeoPixel pixels(PIXELS, pinRGB, NEO_GRB + NEO_KHZ800);
+
 //#define IR_24_KEY
 #define IR_17_KEY
 
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXELS, pinRGB, NEO_GRB + NEO_KHZ800);
-
 const float brightnessStep = 5;
-const float brightnessMAX = 50;
+const float brightnessMAX = 100;
 unsigned char brightnessR = 0;
 unsigned char brightnessG = 0;
 unsigned char brightnessB = 0;
@@ -73,15 +73,12 @@ bool sensorActivated = true;
 bool sleep = false;
 bool countDownMode = false;
 
-bool activateAnimation = false;
-
 int iterationsInMenu = 0;
 int iterationsButtonPressed = 0;
 int iterationsShowed = 0;
 
 unsigned char clockMode = 0;
 unsigned char encoder_A_prev = 0;
-unsigned char menu = 0;
 
 int sleepHourStart = 1;
 int sleepHourEnd = 6;
@@ -102,7 +99,7 @@ enum DotMode
     Blink = 0,
     Permanent,
     Off,
-    MODE_MAX
+    MAX
 };
 
 enum DateFormat
@@ -110,20 +107,25 @@ enum DateFormat
     DDMMYY = 0,
     MMDDYY,
     YYMMDD,
-    MAX,
-};
+    DATE_MAX,
+} currentFormat = DateFormat::MMDDYY;
 
 enum ScrollMode
 {
-    NONE = 0,
+    SCROLL_NONE = 0,
     CHANGING,
     // POPULATE,
     UPDATE,
     SCROLL_MAX
-};
+} scrollMode = ScrollMode::CHANGING;
 
-int currentFormat = MMDDYY;
-int scrollMode = CHANGING;
+enum RGBAnimationMode
+{
+    ANIMATION_NONE = 0,
+    LINEAR,
+    RANDOM,
+    ANIMATION_MAX
+} animationMode = RGBAnimationMode::ANIMATION_NONE;
 
 enum Menu
 {
@@ -142,7 +144,7 @@ enum Menu
 
     SlotMachine,
     SpinChangingNumbers,
-    AnimateColorsMode,
+    ColorAnimationMode,
 
     HourModeSetup,
     DateMode,
@@ -164,9 +166,8 @@ enum Menu
 
     SilentMode,
 
-    MENU_MAX,
-    TubeBrightness,
-};
+    MENU_MAX
+} menu = Menu::MENU_NONE;
 
 void Beep(int size)
 {
@@ -210,29 +211,84 @@ void RestoreBacklight()
 {
     digitalWrite(pin12VSwitch, HIGH);
 
-    if (!activateAnimation)
+    if (animationMode != RGBAnimationMode::ANIMATION_NONE)
     {
         SetBackgroundColor(brightnessR, brightnessG, brightnessB);
     }
 }
 
-void AnimateColors()
+uint32_t LinearColor(byte position)
 {
-    const int seconds = now.second();
-    const int brightness = (seconds % 10) * 8;
-    const int negativeBrightness = (10 - (seconds % 10)) * 8;
-
-    if (seconds >= 0 && seconds < 20)
+    if (position < 85)
     {
-        SetBackgroundColor((seconds >= 10) ? negativeBrightness : brightness, 0, 0);
+        return pixels.Color(position * 3, 255 - position * 3, 0);
     }
-    else if (seconds >= 20 && seconds < 40)
+    else if (position < 170)
     {
-        SetBackgroundColor(0, 0, (seconds >= 30) ? negativeBrightness : brightness);
+        position -= 85;
+        return pixels.Color(255 - position * 3, 0, position * 3);
     }
     else
     {
-        SetBackgroundColor(0, (seconds >= 50) ? negativeBrightness : brightness, 0);
+        position -= 170;
+        return pixels.Color(0, position * 3, 255 - position * 3);
+    }
+}
+
+void LinearAnimation()
+{
+    static int counter = 0;
+
+    counter += 1;
+
+    if (counter > 255)
+    {
+        counter = 0;
+    }
+
+    for(uint16_t i = 0; i < pixels.numPixels(); i++)
+    {
+        pixels.setPixelColor(i, LinearColor((i * 1 + counter) & 255));
+    }
+
+    pixels.show();
+}
+
+void RandomAnimation()
+{
+  static long firstPixelHue = 0;
+
+    if (firstPixelHue < 65536)
+    {
+        for(int i = 0; i < pixels.numPixels(); i++)
+        {
+          int pixelHue = firstPixelHue + (i * 65536L / pixels.numPixels());
+          pixels.setPixelColor(i, pixels.gamma32(pixels.ColorHSV(pixelHue)));
+        }
+        pixels.show();
+        firstPixelHue += 256;
+    }
+    else
+    {
+        firstPixelHue = 0;
+    }
+}
+
+void AnimateColors()
+{
+    switch (animationMode)
+    {
+        case RGBAnimationMode::LINEAR:
+        {
+            LinearAnimation();
+            break;
+        }
+
+        case RGBAnimationMode::RANDOM:
+        {
+            RandomAnimation();
+            break;
+        }
     }
 }
 
@@ -307,9 +363,11 @@ void DisplayNumbers(unsigned char number1, unsigned char number2, unsigned char 
     writeTwoNumbers(number1, number4, anode0);
     writeTwoNumbers(number2, number5, anode1);
     writeTwoNumbers(number3, number6, anode2);
+
+    AnimateColors();
 }
 
-void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t three, ScrollMode mode = NONE)
+void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t three, ScrollMode mode = SCROLL_NONE)
 {
     // Get the high and low order values for three pairs.
     unsigned char lowerFirst = one % 10;
@@ -470,7 +528,7 @@ void ReadSettings()
 
     clockMode = EEPROM.read(DotSetup);
 
-    if (clockMode >= MODE_MAX)
+    if (clockMode >= SCROLL_MAX)
     {
         clockMode = Blink;
     }
@@ -493,7 +551,6 @@ void ReadSettings()
         sensorTime = 1;
     }
 
-
     scrollMode = EEPROM.read(SpinChangingNumbers);
 
     if (scrollMode >= SCROLL_MAX)
@@ -503,12 +560,17 @@ void ReadSettings()
 
     currentFormat = (DateFormat)EEPROM.read(DateMode);
 
-    if (currentFormat > DateFormat::MAX)
+    if (currentFormat > DATE_MAX)
     {
-        currentFormat = DateFormat::MMDDYY;
+        currentFormat = MMDDYY;
     }
 
-    activateAnimation = EEPROM.read(AnimateColorsMode);
+    animationMode = (RGBAnimationMode)EEPROM.read(ColorAnimationMode);
+
+    if (animationMode > ANIMATION_MAX)
+    {
+        animationMode = ANIMATION_NONE;
+    }
 
     sensorActivated = EEPROM.read(ActivateSensor);
     HoursMode12 = EEPROM.read(HourModeSetup);
@@ -589,6 +651,9 @@ void setup()
 
     // Start IR receiver.
     irrcv.enableIRIn();
+
+    pixels.setBrightness(50);
+
     Beep(50);
 }
 
@@ -638,7 +703,7 @@ void ProcessEncoderChange(bool decrease)
     {
         if (decrease)
         {
-            if (++clockMode == MODE_MAX)
+            if (++clockMode == SCROLL_MAX)
             {
                 clockMode = 0;
             }
@@ -647,7 +712,7 @@ void ProcessEncoderChange(bool decrease)
         {
             if (clockMode-- == 0)
             {
-                clockMode = MODE_MAX - 1;
+                clockMode = SCROLL_MAX - 1;
             }
         }
         EEPROM.write(menu, clockMode);
@@ -675,25 +740,28 @@ void ProcessEncoderChange(bool decrease)
     }
     case SpinChangingNumbers:
     {
-        scrollMode += (decrease ? 1 : -1);
-        scrollMode = (scrollMode < 0 ? ScrollMode::UPDATE : scrollMode);
-        scrollMode = (scrollMode > ScrollMode::UPDATE ? ScrollMode::NONE : scrollMode);
+        scrollMode = scrollMode + (decrease ? 1 : -1);
+        scrollMode = (scrollMode < 0 ? UPDATE : scrollMode);
+        scrollMode = (scrollMode > UPDATE ? SCROLL_NONE : scrollMode);
 
         EEPROM.write(menu, scrollMode);
         break;
     }
-    case AnimateColorsMode:
+    case ColorAnimationMode:
     {
-        activateAnimation = !activateAnimation;
-        EEPROM.write(menu, activateAnimation);
+        animationMode = animationMode + (decrease ? 1 : -1);
+        animationMode = (animationMode < 0 ? RANDOM : animationMode);
+        animationMode = (animationMode > RANDOM ? ANIMATION_NONE : animationMode);
+
+        EEPROM.write(menu, animationMode);
         SetBackgroundColor(brightnessR, brightnessG, brightnessB);
         break;
     }
     case DateMode:
     {
-        currentFormat += (decrease ? 1 : -1);
-        currentFormat = (currentFormat < 0 ? DateFormat::YYMMDD : currentFormat);
-        currentFormat = (currentFormat > DateFormat::YYMMDD ? DateFormat::DDMMYY : currentFormat);
+        currentFormat = currentFormat + (decrease ? 1 : -1);
+        currentFormat = (currentFormat < 0 ? YYMMDD : currentFormat);
+        currentFormat = (currentFormat > YYMMDD ? DDMMYY : currentFormat);
         EEPROM.write(menu, currentFormat);
         break;
     }
@@ -865,6 +933,18 @@ void CheckAlarm()
         seconds == 0)
     {
         fireAlarm = true;
+    }
+
+    if (fireAlarm)
+    {
+        static int second = now.second();
+
+        if (second != now.second())
+        {
+            Beep(100);
+        }
+
+        second = now.second();
     }
 }
 
@@ -1187,7 +1267,7 @@ void DisplayTime(bool blink = false)
         }
     }
 
-    DisplayThreeNumbers(hours, minutes, seconds, (menu != MENU_NONE) ? NONE : scrollMode);
+    DisplayThreeNumbers(hours, minutes, seconds, (menu != MENU_NONE) ? SCROLL_NONE : scrollMode);
 }
 
 void ProcessMenu()
@@ -1236,8 +1316,8 @@ void ProcessMenu()
     case SpinChangingNumbers:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : scrollMode);
         break;
-    case AnimateColorsMode:
-        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : activateAnimation);
+    case ColorAnimationMode:
+        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : animationMode);
         break;
     case DateMode:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : currentFormat);
@@ -1294,7 +1374,8 @@ void ProcessButton()
         RestoreBacklight();
         Beep(50);
 
-        if (++menu == MENU_MAX)
+        menu = menu + 1;
+        if (menu == MENU_MAX)
         {
             menu = MENU_NONE;
         }
@@ -1450,7 +1531,9 @@ void ReadIRCommand()
         {
             Beep(50);
             iterationsInMenu = 0;
-            if (++menu == MENU_MAX)
+
+            menu = menu + 1;
+            if (menu == MENU_MAX)
             {
                 menu = MENU_NONE;
             }
@@ -1497,18 +1580,6 @@ void loop()
     ReadMotionSensor();
     CheckAlarm();
 
-    if (fireAlarm)
-    {
-        static int second = now.second();
-
-        if (second != now.second())
-        {
-            Beep(100);
-        }
-
-        second = now.second();
-    }
-
     if (now.second() == 30 && (now.minute() % 2) == 0)
     {
         sleep = TimeToSleep();
@@ -1531,10 +1602,6 @@ void loop()
     }
 
     SetDot();
-    if (activateAnimation)
-    {
-        AnimateColors();
-    }
 
     if (menu != MENU_NONE)
     {
