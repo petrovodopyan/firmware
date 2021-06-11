@@ -211,7 +211,7 @@ void RestoreBacklight()
 {
     digitalWrite(pin12VSwitch, HIGH);
 
-    if (animationMode != RGBAnimationMode::ANIMATION_NONE)
+    if (animationMode == RGBAnimationMode::ANIMATION_NONE)
     {
         SetBackgroundColor(brightnessR, brightnessG, brightnessB);
     }
@@ -478,35 +478,37 @@ void SpinAllNumbers(unsigned char spinTimes = 5)
 
 void TestColorChanels()
 {
-    const int maxBrightness = 80;
-    for (int i = 0; i < maxBrightness; ++i)
+    const int maxBrightness = 255;
+    const int step = 3;
+
+    for (int i = 0; i < maxBrightness; i += step)
     {
         SetBackgroundColor(i, 0, 0);
         delay(5);
     }
-    for (int i = maxBrightness; i > 0; --i)
+    for (int i = maxBrightness; i > 0; i -= step)
     {
         SetBackgroundColor(i, 0, 0);
         delay(5);
     }
 
-    for (int i = 0; i < maxBrightness; ++i)
+    for (int i = 0; i < maxBrightness; i += step)
     {
         SetBackgroundColor(0, i, 0);
         delay(5);
     }
-    for (int i = maxBrightness; i > 0; --i)
+    for (int i = maxBrightness; i > 0; i -= step)
     {
         SetBackgroundColor(0, i, 0);
         delay(5);
     }
 
-    for (int i = 0; i < maxBrightness; ++i)
+    for (int i = 0; i < maxBrightness; i += step)
     {
         SetBackgroundColor(0, 0, i);
         delay(5);
     }
-    for (int i = maxBrightness; i > 0; --i)
+    for (int i = maxBrightness; i > 0; i -= step)
     {
         SetBackgroundColor(0, 0, i);
         delay(5);
@@ -622,6 +624,7 @@ void setup()
 
     // Back light init.
     pixels.begin();
+    pixels.setBrightness(80);
 
     pinMode(pinDot, OUTPUT);
     pinMode(pinBuzzer, OUTPUT);
@@ -651,8 +654,6 @@ void setup()
 
     // Start IR receiver.
     irrcv.enableIRIn();
-
-    pixels.setBrightness(50);
 
     Beep(50);
 }
