@@ -1143,9 +1143,9 @@ void ScrollFromTimeToDate()
         DisplayDate();
     }
 
-    years = rtc.now().year() % 100;
-    months = rtc.now().month();
-    days = rtc.now().date();
+    years = now.year() % 100;
+    months = now.month();
+    days = now.date();
 
     switch (currentFormat)
     {
@@ -1184,9 +1184,9 @@ void ScrollFromTimeToDate()
     }
     }
 
-    hours = rtc.now().hour();
-    minutes = rtc.now().minute();
-    seconds = rtc.now().second();
+    hours = now.hour();
+    minutes = now.minute();
+    seconds = now.second();
 
     for (int k = 0; k < 6; ++k)
     {
