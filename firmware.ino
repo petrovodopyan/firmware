@@ -60,7 +60,7 @@ unsigned char brightnessB = 0;
 bool beepOnHour = false;
 bool beeped = false;
 
-bool silentModel = false;
+bool silentMode = false;
 
 bool powerON = true;
 
@@ -165,13 +165,14 @@ enum Menu
     ActivateSensor,
 
     SilentMode,
+    InternalTemperature,
 
     MENU_MAX
 } menu = Menu::MENU_NONE;
 
 void Beep(int size)
 {
-    if (!silentModel)
+    if (!silentMode)
     {
         NewTone(pinBuzzer, 4000, 50);
     }
@@ -537,7 +538,7 @@ void ReadSettings()
 
     beepOnHour = EEPROM.read(BeepHourlyMode);
 
-    silentModel = EEPROM.read(SilentMode);
+    silentMode = EEPROM.read(SilentMode);
 
     slotMachineFrequency = EEPROM.read(SlotMachine);
 
@@ -727,8 +728,8 @@ void ProcessEncoderChange(bool decrease)
     }
     case SilentMode:
     {
-        silentModel = !silentModel;
-        EEPROM.write(menu, silentModel);
+        silentMode = !silentMode;
+        EEPROM.write(menu, silentMode);
         break;
     }
     case SlotMachine:
@@ -913,6 +914,10 @@ void ProcessEncoderChange(bool decrease)
         sensorTime = (sensorTime > sensorTimeMAX ? 1 : sensorTime);
         EEPROM.write(menu, sensorTime);
         break;
+    }
+    case InternalTemperature:
+    {
+        break;  
     }
     default:
     {
@@ -1233,7 +1238,7 @@ void DisplayTime(bool blink = false)
         beeped = false;
     }
 
-    // if is time to show date and prevent cathode poisoning.
+    // if it is time to show date for preventing cathode poisoning.
     if (seconds == 56 && (minutes % slotMachineFrequency) == 0 && slotMachineFrequency)
     {
         if (showDate)
@@ -1308,9 +1313,6 @@ void ProcessMenu()
     case BeepHourlyMode:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : beepOnHour);
         break;
-    case SilentMode:
-        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : silentModel);
-        break;
     case SlotMachine:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : slotMachineFrequency);
         break;
@@ -1343,6 +1345,12 @@ void ProcessMenu()
         break;
     case MotionSensorTime:
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : sensorTime);
+        break;
+    case SilentMode:
+        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : silentMode);
+        break;
+    case InternalTemperature:
+        DisplayThreeNumbers((byte)menu, 0, rtc.getTemperature());
         break;
     }
 
