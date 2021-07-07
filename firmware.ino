@@ -46,6 +46,10 @@ const int sensorTimeMAX = 5;
 #define NUMBER_MAX 100
 #define PIXELS     6
 
+// Version
+#define MAJOR     1
+#define MINOR     19
+
 Adafruit_NeoPixel pixels(PIXELS, pinRGB, NEO_GRB + NEO_KHZ800);
 
 //#define IR_24_KEY
@@ -166,6 +170,7 @@ enum Menu
 
     SilentMode,
     InternalTemperature,
+    FirmwareVersion,
 
     MENU_MAX
 } menu = Menu::MENU_NONE;
@@ -919,6 +924,10 @@ void ProcessEncoderChange(bool decrease)
     {
         break;  
     }
+    case FirmwareVersion:
+    {
+        break;
+    }
     default:
     {
         SpinAllNumbers();
@@ -1350,7 +1359,10 @@ void ProcessMenu()
         DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : silentMode);
         break;
     case InternalTemperature:
-        DisplayThreeNumbers((byte)menu, 0, rtc.getTemperature());
+        DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : rtc.getTemperature());
+        break;
+    case FirmwareVersion:
+        DisplayThreeNumbers((byte)menu, blink ? NUMBER_MAX : MAJOR, blink ? NUMBER_MAX : MINOR);
         break;
     }
 
