@@ -252,7 +252,7 @@ void LinearAnimation()
         counter = 0;
     }
 
-    for(uint16_t i = 0; i < pixels.numPixels(); i++)
+    for (uint16_t i = 0; i < pixels.numPixels(); i++)
     {
         pixels.setPixelColor(i, LinearColor((i * 1 + counter) & 255));
     }
@@ -262,14 +262,14 @@ void LinearAnimation()
 
 void RandomAnimation()
 {
-  static long firstPixelHue = 0;
+    static long firstPixelHue = 0;
 
     if (firstPixelHue < 65536)
     {
-        for(int i = 0; i < pixels.numPixels(); i++)
+        for (int i = 0; i < pixels.numPixels(); i++)
         {
-          int pixelHue = firstPixelHue + (i * 65536L / pixels.numPixels());
-          pixels.setPixelColor(i, pixels.gamma32(pixels.ColorHSV(pixelHue)));
+            int pixelHue = firstPixelHue + (i * 65536L / pixels.numPixels());
+            pixels.setPixelColor(i, pixels.gamma32(pixels.ColorHSV(pixelHue)));
         }
         pixels.show();
         firstPixelHue += 256;
@@ -284,17 +284,17 @@ void AnimateColors()
 {
     switch (animationMode)
     {
-        case RGBAnimationMode::LINEAR:
-        {
-            LinearAnimation();
-            break;
-        }
+    case RGBAnimationMode::LINEAR:
+    {
+        LinearAnimation();
+        break;
+    }
 
-        case RGBAnimationMode::RANDOM:
-        {
-            RandomAnimation();
-            break;
-        }
+    case RGBAnimationMode::RANDOM:
+    {
+        RandomAnimation();
+        break;
+    }
     }
 }
 
@@ -413,12 +413,12 @@ void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t thr
             for (int i = 0; i < 10; ++i)
             {
                 int numbers[6] = {
-                  (s_upperFirst != upperFirst) ? ((upperFirst + i) % 10) : upperFirst,
-                  (s_lowerFirst != lowerFirst) ? ((lowerFirst + i) % 10) : lowerFirst,
-                  (s_upperSecond != upperSecond) ? ((upperSecond + i) % 10) : upperSecond,
-                  (s_lowerSecond != lowerSecond) ? ((lowerSecond + i) % 10) : lowerSecond,
-                  (s_upperThird != upperThird) ? ((upperThird + i) % 10) : upperThird,
-                  (s_lowerThird != lowerThird) ? ((lowerThird + i) % 10) : lowerThird
+                    (s_upperFirst != upperFirst) ? ((upperFirst + i) % 10) : upperFirst,
+                    (s_lowerFirst != lowerFirst) ? ((lowerFirst + i) % 10) : lowerFirst,
+                    (s_upperSecond != upperSecond) ? ((upperSecond + i) % 10) : upperSecond,
+                    (s_lowerSecond != lowerSecond) ? ((lowerSecond + i) % 10) : lowerSecond,
+                    (s_upperThird != upperThird) ? ((upperThird + i) % 10) : upperThird,
+                    (s_lowerThird != lowerThird) ? ((lowerThird + i) % 10) : lowerThird
                 };
 
                 for (int j = 0; j < spinningTime; ++j)
@@ -641,7 +641,7 @@ void setup()
     PORTB |= (1 << pinEncoderA);  // turn on pull-up resistor
     PORTB |= (1 << pinEncoderB);  // turn on pull-up resistor
 
-    // Button pin.
+                                                                // Button pin.
     DDRD &= ~(1 << pinButton);
     PORTD |= (1 << pinButton);  // turn on pull-up resistor
 
@@ -922,7 +922,7 @@ void ProcessEncoderChange(bool decrease)
     }
     case InternalTemperature:
     {
-        break;  
+        break;
     }
     case FirmwareVersion:
     {
