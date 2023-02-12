@@ -80,7 +80,7 @@ int iterationsInMenu = 0;
 int iterationsButtonPressed = 0;
 int iterationsShowed = 0;
 
-unsigned char clockMode = 0;
+unsigned char neonDotMode = 0;
 unsigned char encoder_A_prev = 0;
 
 int sleepHourStart = 1;
@@ -101,8 +101,9 @@ decode_results res;
 enum DotMode
 {
   Blink = 0,
-  Permanent,
+  PermanentON,
   Off,
+  MotionSensorIndication,
   MAX
 };
 
@@ -536,11 +537,11 @@ void ReadSettings()
   brightnessB = EEPROM.read(BacklightBlue);
   brightnessG = EEPROM.read(BacklightGreen);
 
-  clockMode = EEPROM.read(DotSetup);
+  neonDotMode = EEPROM.read(DotSetup);
 
-  if (clockMode >= SCROLL_MAX)
+  if (neonDotMode >= MAX)
   {
-    clockMode = Blink;
+    neonDotMode = Blink;
   }
 
   beepOnHour = EEPROM.read(BeepHourlyMode);
@@ -712,19 +713,19 @@ void ProcessEncoderChange(bool decrease)
       {
         if (decrease)
         {
-          if (++clockMode == SCROLL_MAX)
+          if (++neonDotMode == MAX)
           {
-            clockMode = 0;
+            neonDotMode = 0;
           }
         }
         else
         {
-          if (clockMode-- == 0)
+          if (neonDotMode-- == 0)
           {
-            clockMode = SCROLL_MAX - 1;
+            neonDotMode = MAX - 1;
           }
         }
-        EEPROM.write(menu, clockMode);
+        EEPROM.write(menu, neonDotMode);
         break;
       }
     case BeepHourlyMode:
@@ -1006,16 +1007,21 @@ void SetDot()
 {
   bool lightUp = false;
 
-  switch (clockMode)
+  switch (neonDotMode)
   {
     case Blink:
       {
         lightUp = (now.second() % 2 != 0);
         break;
       }
-    case Permanent:
+    case PermanentON:
       {
         lightUp = true;
+        break;
+      }
+    case MotionSensorIndication:
+      {
+        lightUp = (analogRead(pinPirSensor) < 200 ? false : true);
         break;
       }
     case Off:
@@ -1333,7 +1339,7 @@ void ProcessMenu()
       DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : (brightnessB / brightnessStep));
       break;
     case DotSetup:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : clockMode);
+      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : neonDotMode);
       break;
     case BeepHourlyMode:
       DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : beepOnHour);
