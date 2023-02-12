@@ -1,9 +1,9 @@
 #include <Wire.h>
-#include "DS3231.h"
+#include <DS3231.h>
 #include <IRremote.h>
 #include <EEPROM.h>
 #include <Adafruit_NeoPixel.h>
-//#include <NewTone.h>
+#include <NewTone.h>
 
 // Pins definition.
 const unsigned char pinSDI = A0;
@@ -73,7 +73,7 @@ bool HoursMode12 = false;
 bool showDate = true;
 bool sensorActivated = true;
 
-bool sleep = false;
+bool timeToSleep = false;
 bool countDownMode = false;
 
 int iterationsInMenu = 0;
@@ -91,8 +91,9 @@ bool alarmModeEnabled = false;
 int alarmHour = 7;
 int alarmMinute = 30;
 
-DS3231 rtc;
+RTClib rtc;
 DateTime now;
+DS3231 clock_;
 
 IRrecv irrcv(pinIR);
 decode_results res;
@@ -111,7 +112,7 @@ enum DateFormat
   MMDDYY,
   YYMMDD,
   DATE_MAX,
-} currentFormat = DateFormat::MMDDYY;
+} currentFormat;
 
 enum ScrollMode
 {
@@ -120,7 +121,7 @@ enum ScrollMode
   // POPULATE,
   UPDATE,
   SCROLL_MAX
-} scrollMode = ScrollMode::CHANGING;
+} scrollMode;
 
 enum RGBAnimationMode
 {
@@ -128,7 +129,7 @@ enum RGBAnimationMode
   LINEAR,
   RANDOM,
   ANIMATION_MAX
-} animationMode = RGBAnimationMode::ANIMATION_NONE;
+} animationMode;
 
 enum Menu
 {
@@ -172,7 +173,7 @@ enum Menu
   FirmwareVersion,
 
   MENU_MAX
-} menu = Menu::MENU_NONE;
+} menu;
 
 void Beep(int size)
 {
@@ -265,7 +266,7 @@ void RandomAnimation()
 
   if (firstPixelHue < 65536)
   {
-    for (int i = 0; i < pixels.numPixels(); i++)
+    for (uint16_t i = 0; i < pixels.numPixels(); i++)
     {
       int pixelHue = firstPixelHue + (i * 65536L / pixels.numPixels());
       pixels.setPixelColor(i, pixels.gamma32(pixels.ColorHSV(pixelHue)));
@@ -294,6 +295,8 @@ void AnimateColors()
         RandomAnimation();
         break;
       }
+    default:
+      break;
   }
 }
 
@@ -317,7 +320,7 @@ void shift5812PJ(uint8_t dataByte)
   }
 }
 
-unsigned int writeTwoNumbers(unsigned char left, unsigned char right, unsigned char anode)
+void writeTwoNumbers(unsigned char left, unsigned char right, unsigned char anode)
 {
   unsigned char byte1 = 0xFF;
   unsigned char byte2 = 0xFF;
@@ -420,7 +423,7 @@ void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t thr
               (s_lowerThird != lowerThird) ? ((lowerThird + i) % 10) : lowerThird
             };
 
-            for (int j = 0; j < spinningTime; ++j)
+            for (unsigned int j = 0; j < spinningTime; ++j)
             {
               DisplayNumbers(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], numbers[5]);
               delayMicroseconds(1100);
@@ -558,7 +561,7 @@ void ReadSettings()
     sensorTime = 1;
   }
 
-  scrollMode = EEPROM.read(SpinChangingNumbers);
+  scrollMode = (ScrollMode)EEPROM.read(SpinChangingNumbers);
 
   if (scrollMode >= SCROLL_MAX)
   {
@@ -620,7 +623,6 @@ void setup()
   pinMode(pin12VSwitch, OUTPUT);
 
   digitalWrite(pin12VSwitch, HIGH);
-  digitalWrite(pinBLNK, LOW);
 
   // Anode pins.
   pinMode(anode0, OUTPUT);
@@ -645,7 +647,6 @@ void setup()
   PORTD |= (1 << pinButton);  // turn on pull-up resistor
 
   Wire.begin();
-  rtc.begin();
 
   pinMode(pinPirSensor, INPUT_PULLUP);
 
@@ -659,6 +660,8 @@ void setup()
 
   // Start IR receiver.
   irrcv.enableIRIn();
+
+  menu = Menu::MENU_NONE;
 
   Beep(50);
 }
@@ -746,7 +749,7 @@ void ProcessEncoderChange(bool decrease)
       }
     case SpinChangingNumbers:
       {
-        scrollMode = scrollMode + (decrease ? 1 : -1);
+        scrollMode = (ScrollMode)(scrollMode + (decrease ? 1 : -1));
         scrollMode = (scrollMode < 0 ? UPDATE : scrollMode);
         scrollMode = (scrollMode > UPDATE ? SCROLL_NONE : scrollMode);
 
@@ -755,7 +758,7 @@ void ProcessEncoderChange(bool decrease)
       }
     case ColorAnimationMode:
       {
-        animationMode = animationMode + (decrease ? 1 : -1);
+        animationMode = (RGBAnimationMode)(animationMode + (decrease ? 1 : -1));
         animationMode = (animationMode < 0 ? RANDOM : animationMode);
         animationMode = (animationMode > RANDOM ? ANIMATION_NONE : animationMode);
 
@@ -765,7 +768,7 @@ void ProcessEncoderChange(bool decrease)
       }
     case DateMode:
       {
-        currentFormat = currentFormat + (decrease ? 1 : -1);
+        currentFormat = (DateFormat)(currentFormat + (decrease ? 1 : -1));
         currentFormat = (currentFormat < 0 ? YYMMDD : currentFormat);
         currentFormat = (currentFormat > YYMMDD ? DDMMYY : currentFormat);
         EEPROM.write(menu, currentFormat);
@@ -779,86 +782,94 @@ void ProcessEncoderChange(bool decrease)
       }
     case MinutesSetup:
       {
+        uint8_t minute = now.minute();
         if (decrease)
         {
-          if (++now.mm == 60)
+          if (++minute == 60)
           {
-            now.mm = 0;
+            minute = 0;
           }
         }
         else
         {
-          if (now.mm-- == 0)
-            now.mm = 59;
+          if (minute-- == 0)
+            minute = 59;
         }
-        rtc.adjust(now);
+        clock_.setMinute(minute);
         break;
       }
     case SecondsSetup:
       {
+        uint8_t second = now.second();
         if (decrease)
         {
-          if (++now.ss == 60)
-            now.ss = 0;
+          if (++second == 60)
+            second = 0;
         }
         else
         {
-          if (now.ss-- == 0)
-            now.ss = 59;
+          if (second-- == 0)
+            second = 59;
         }
-        rtc.adjust(now);
+        clock_.setSecond(second);
         break;
       }
     case HoursSetup:
       {
+        uint8_t hour = now.hour();
         if (decrease)
         {
-          if (++now.hh == 24)
-            now.hh = 0;
+          if (++hour == 24)
+            hour = 0;
         }
         else
         {
-          if (now.hh-- == 0)
-            now.hh = 23;
+          if (hour-- == 0)
+            hour = 23;
         }
-        rtc.adjust(now);
+        clock_.setHour(hour);
         break;
       }
     case YearSetup:
       {
-        now.yOff += (decrease ? 1 : -1);
-        rtc.adjust(now);
+        uint8_t year = clock_.getYear();
+        year += (decrease ? 1 : -1);
+        clock_.setYear(year);
         break;
       }
     case MonthSetup:
       {
+        uint8_t month = now.month();
+
         if (decrease)
         {
-          if (++now.m == 13)
-            now.m = 1;
+          if (++month == 13)
+            month = 1;
         }
         else
         {
-          if (now.m-- == 1)
-            now.m = 12;
+          if (month-- == 1)
+            month = 12;
         }
-        rtc.adjust(now);
+        clock_.setMonth(month);
         break;
       }
     case DaySetup:
       {
+        uint8_t day = now.day();
+
         if (decrease)
         {
-          if (++now.d == 32)
-            now.d = 1;
+          if (++day == 32)
+            day = 1;
         }
         else
         {
-          if (now.d-- == 1)
-            now.d = 31;
+          if (day-- == 1)
+            day = 31;
         }
 
-        rtc.adjust(now);
+        clock_.setDate(day);
         break;
       }
     case SleepStart:
@@ -937,9 +948,9 @@ void ProcessEncoderChange(bool decrease)
 
 void CheckAlarm()
 {
-  unsigned char hours = now.hour();
-  unsigned char minutes = now.minute();
-  unsigned char seconds = now.second();
+  uint8_t hours = now.hour();
+  uint8_t minutes = now.minute();
+  uint8_t seconds = now.second();
 
   if (alarmModeEnabled &&
       hours == alarmHour &&
@@ -964,7 +975,7 @@ void CheckAlarm()
 
 bool TimeToSleep()
 {
-  unsigned char hours = now.hour();
+  uint8_t hours = now.hour();
 
   if (sleepHourStart > sleepHourEnd)
   {
@@ -1029,7 +1040,7 @@ void DisplayDate(bool blink = false)
 {
   unsigned char years = now.year() % 100;
   unsigned char months = now.month();
-  unsigned char days = now.date();
+  unsigned char days = now.day();
 
   if (blink)
   {
@@ -1044,6 +1055,8 @@ void DisplayDate(bool blink = false)
       case DaySetup:
         days = NUMBER_MAX;
         break;
+      default:
+        break;
     }
   }
 
@@ -1051,7 +1064,7 @@ void DisplayDate(bool blink = false)
   {
     case DDMMYY:
       {
-        DisplayThreeNumbers(days, months, years);
+         DisplayThreeNumbers(days, months, years);
         break;
       }
     case MMDDYY:
@@ -1064,6 +1077,8 @@ void DisplayDate(bool blink = false)
         DisplayThreeNumbers(years, months, days);
         break;
       }
+    default:
+      break;
   }
 }
 
@@ -1075,7 +1090,7 @@ void ScrollFromTimeToDate()
 
   unsigned char years = now.year() % 100;
   unsigned char months = now.month();
-  unsigned char days = now.date();
+  unsigned char days = now.day();
 
   // Get the high and low order values for three pairs.
   unsigned char lowerFirst = hours % 10;
@@ -1153,7 +1168,7 @@ void ScrollFromTimeToDate()
 
   years = now.year() % 100;
   months = now.month();
-  days = now.date();
+  days = now.day();
 
   switch (currentFormat)
   {
@@ -1190,6 +1205,8 @@ void ScrollFromTimeToDate()
 
         break;
       }
+    default:
+      break;
   }
 
   hours = now.hour();
@@ -1247,7 +1264,7 @@ void DisplayTime(bool blink = false)
   }
 
   // if it is time to show date for preventing cathode poisoning.
-  if (seconds == 56 && (minutes % slotMachineFrequency) == 0 && slotMachineFrequency && menu == MENU_NONE)
+  if (seconds == 56 && slotMachineFrequency && (minutes % slotMachineFrequency) == 0 && (Menu)menu == MENU_NONE)
   {
     if (showDate)
     {
@@ -1358,10 +1375,12 @@ void ProcessMenu()
       DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : silentMode);
       break;
     case InternalTemperature:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : rtc.getTemperature());
+      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : clock_.getTemperature());
       break;
     case FirmwareVersion:
       DisplayThreeNumbers((byte)menu, blink ? NUMBER_MAX : MAJOR, blink ? NUMBER_MAX : MINOR);
+      break;
+    default:
       break;
   }
 
@@ -1381,10 +1400,10 @@ void ProcessButton()
       pressed = false;
       menu = MENU_NONE;
       iterationsButtonPressed = 0;
-      //sleep = true;
+      // timeToSleep = true;
     }
   }
-  else if (pressed && !sleep)
+  else if (pressed && !timeToSleep)
   {
     iterationsButtonPressed = 0;
     iterationsInMenu = 0;
@@ -1394,7 +1413,7 @@ void ProcessButton()
     RestoreBacklight();
     Beep(50);
 
-    menu = menu + 1;
+    menu = (Menu)(menu + 1);
     if (menu == MENU_MAX)
     {
       menu = MENU_NONE;
@@ -1409,7 +1428,7 @@ void ReadEncoder()
   unsigned char encoder_B = (PINB & (1 << pinEncoderB));//digitalRead(encoderB);
   if ((!encoder_A) && (encoder_A_prev))
   {
-    sleep = false;
+    timeToSleep = false;
     powerON = true;
     RestoreBacklight();
     fireAlarm = false;
@@ -1428,7 +1447,7 @@ void ReadIRCommand()
 {
   if (irrcv.decode(&res))
   {
-    sleep = false;
+    timeToSleep = false;
     RestoreBacklight();
     fireAlarm = false;
 
@@ -1552,7 +1571,7 @@ void ReadIRCommand()
           Beep(50);
           iterationsInMenu = 0;
 
-          menu = menu + 1;
+          menu = (Menu)(menu + 1);
           if (menu == MENU_MAX)
           {
             menu = MENU_NONE;
@@ -1574,13 +1593,13 @@ void ReadMotionSensor()
     {
       iterationSensor = 0;
 
-      if (digitalRead(pinPirSensor) == LOW)
+      if (analogRead(pinPirSensor) < 200)
       {
-        sleep = true;
+        timeToSleep = true;
       }
       else
       {
-        sleep = false;
+        timeToSleep = false;
         RestoreBacklight();
         iterationSensor = sensorTime * iterationSensorStep;
       }
@@ -1592,7 +1611,7 @@ void ReadMotionSensor()
 
 void loop()
 {
-  now = rtc.now();
+  now = RTClib::now();
 
   ReadIRCommand();
   ProcessButton();
@@ -1602,15 +1621,15 @@ void loop()
 
   if (now.second() == 30 && (now.minute() % 2) == 0)
   {
-    sleep = TimeToSleep();
+    timeToSleep = TimeToSleep();
 
-    if (!sleep && powerON && !sensorActivated) // exit sleep timer
+    if (!timeToSleep && powerON && !sensorActivated) // exit sleep timer
     {
       RestoreBacklight();
     }
   }
 
-  if (sleep || !powerON)
+  if (timeToSleep || !powerON)
   {
     pressed = false;
     DimmDot();
