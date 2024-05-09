@@ -33,7 +33,7 @@ const unsigned int spinningTime = 3;
 const int iterationsDimmDigits = 35;
 
 int sensorTime = 1;
-long iterationSensorStep = 5000; // 5000 ~ approximately 1 minute.
+long iterationSensorStep = 5350; // 5350 ~ approximately 1 minute.
 long iterationSensor = sensorTime * iterationSensorStep;
 
 int slotMachineFrequency = 0;
@@ -43,19 +43,19 @@ const int sensorTimeMAX = 5;
 
 // Constants and defines.
 #define NUMBER_MAX 100
-#define PIXELS     6
+#define PIXELS 6
 
 // Version
-#define MAJOR     1
-#define MINOR     19
+#define MAJOR 1
+#define MINOR 19
 
 Adafruit_NeoPixel pixels(PIXELS, pinRGB, NEO_GRB + NEO_KHZ800);
 
-//#define IR_24_KEY
+// #define IR_24_KEY
 #define IR_17_KEY
 
 const float brightnessStep = 5;
-const float brightnessMAX = 100;
+const float brightnessMAX = 150;
 unsigned char brightnessR = 0;
 unsigned char brightnessG = 0;
 unsigned char brightnessB = 0;
@@ -285,19 +285,19 @@ void AnimateColors()
 {
   switch (animationMode)
   {
-    case RGBAnimationMode::LINEAR:
-      {
-        LinearAnimation();
-        break;
-      }
+  case RGBAnimationMode::LINEAR:
+  {
+    LinearAnimation();
+    break;
+  }
 
-    case RGBAnimationMode::RANDOM:
-      {
-        RandomAnimation();
-        break;
-      }
-    default:
-      break;
+  case RGBAnimationMode::RANDOM:
+  {
+    RandomAnimation();
+    break;
+  }
+  default:
+    break;
   }
 }
 
@@ -316,7 +316,7 @@ void shift5812PJ(uint8_t dataByte)
       PORTC &= ~(1 << 0); // digitalWrite(pinSDI, LOW);
     }
 
-    PORTC |= 1 << 1; // digitalWrite(pinCLK, HIGH);
+    PORTC |= 1 << 1;    // digitalWrite(pinCLK, HIGH);
     PORTC &= ~(1 << 1); // digitalWrite(pinCLK, LOW);
   }
 }
@@ -361,9 +361,9 @@ void writeTwoNumbers(unsigned char left, unsigned char right, unsigned char anod
 
   PORTD |= 1 << 6; // digitalWrite(pinLE, HIGH);
 
-  PORTD |= 1 << anode; //digitalWrite(anode, HIGH);
+  PORTD |= 1 << anode; // digitalWrite(anode, HIGH);
   delay(1);
-  PORTD &= ~(1 << anode); //digitalWrite(anode, LOW);
+  PORTD &= ~(1 << anode); // digitalWrite(anode, LOW);
   delay(1);
 }
 
@@ -399,7 +399,7 @@ void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t thr
     upperThird = lowerThird = 10;
   }
 
-  //SetDot();
+  // SetDot();
   static unsigned char s_upperFirst = 0,
                        s_lowerFirst = 0,
                        s_upperSecond = 0,
@@ -409,60 +409,60 @@ void DisplayThreeNumbers(const uint8_t one, const uint8_t two, const uint8_t thr
 
   switch (mode)
   {
-    case CHANGING:
+  case CHANGING:
+  {
+    if (s_lowerThird != lowerThird)
+    {
+      for (int i = 0; i < 10; ++i)
       {
-        if (s_lowerThird != lowerThird)
-        {
-          for (int i = 0; i < 10; ++i)
-          {
-            int numbers[6] = {
-              (s_upperFirst != upperFirst) ? ((upperFirst + i) % 10) : upperFirst,
-              (s_lowerFirst != lowerFirst) ? ((lowerFirst + i) % 10) : lowerFirst,
-              (s_upperSecond != upperSecond) ? ((upperSecond + i) % 10) : upperSecond,
-              (s_lowerSecond != lowerSecond) ? ((lowerSecond + i) % 10) : lowerSecond,
-              (s_upperThird != upperThird) ? ((upperThird + i) % 10) : upperThird,
-              (s_lowerThird != lowerThird) ? ((lowerThird + i) % 10) : lowerThird
-            };
+        int numbers[6] = {
+            (s_upperFirst != upperFirst) ? ((upperFirst + i) % 10) : upperFirst,
+            (s_lowerFirst != lowerFirst) ? ((lowerFirst + i) % 10) : lowerFirst,
+            (s_upperSecond != upperSecond) ? ((upperSecond + i) % 10) : upperSecond,
+            (s_lowerSecond != lowerSecond) ? ((lowerSecond + i) % 10) : lowerSecond,
+            (s_upperThird != upperThird) ? ((upperThird + i) % 10) : upperThird,
+            (s_lowerThird != lowerThird) ? ((lowerThird + i) % 10) : lowerThird};
 
-            for (unsigned int j = 0; j < spinningTime; ++j)
-            {
-              DisplayNumbers(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], numbers[5]);
-              delayMicroseconds(1100);
-            }
-          }
+        for (unsigned int j = 0; j < spinningTime; ++j)
+        {
+          DisplayNumbers(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], numbers[5]);
+          delayMicroseconds(1100);
         }
-        break;
       }
-    case UPDATE:
+    }
+    break;
+  }
+  case UPDATE:
+  {
+    if (s_lowerThird != lowerThird)
+    {
+      for (int k = 0; k < 6; ++k)
       {
-        if (s_lowerThird != lowerThird)
+        for (int i = 0; i < 10; ++i)
         {
-          for (int k = 0; k < 6; ++k)
+          for (unsigned char j = 0; j < 2; ++j)
           {
-            for (int i = 0; i < 10; ++i)
-            {
-              for (unsigned char j = 0; j < 2; ++j)
-              {
-                DisplayNumbers(
-                  (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
-                  (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
-                  (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
-                  (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
-                  (k == 4) ? ((upperThird + i) % 10) : upperThird,
-                  (k == 5) ? ((lowerThird + i) % 10) : lowerThird
-                );
-                delayMicroseconds(1000);
-              }
-              if (MenuPressed())
-                break;
-            }
-            if (MenuPressed())
-              break;
+            DisplayNumbers(
+                (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
+                (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
+                (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
+                (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
+                (k == 4) ? ((upperThird + i) % 10) : upperThird,
+                (k == 5) ? ((lowerThird + i) % 10) : lowerThird);
+            delayMicroseconds(1000);
           }
+          if (MenuPressed())
+            break;
         }
-
-        break;
+        if (MenuPressed())
+          break;
       }
+    }
+
+    break;
+  }
+  default:
+    break;
   }
   DisplayNumbers(upperFirst, lowerFirst, upperSecond, lowerSecond, upperThird, lowerThird);
 
@@ -640,12 +640,12 @@ void setup()
   // Encoder setup. Two pins.
   DDRB &= ~(1 << pinEncoderA);
   DDRB &= ~(1 << pinEncoderB);
-  PORTB |= (1 << pinEncoderA);  // turn on pull-up resistor
-  PORTB |= (1 << pinEncoderB);  // turn on pull-up resistor
+  PORTB |= (1 << pinEncoderA); // turn on pull-up resistor
+  PORTB |= (1 << pinEncoderB); // turn on pull-up resistor
 
   // Button pin.
   DDRD &= ~(1 << pinButton);
-  PORTD |= (1 << pinButton);  // turn on pull-up resistor
+  PORTD |= (1 << pinButton); // turn on pull-up resistor
 
   Wire.begin();
 
@@ -667,7 +667,7 @@ void setup()
   Beep(50);
 }
 
-void SetChanelBrightness(bool decrease, unsigned char& brightness)
+void SetChanelBrightness(bool decrease, unsigned char &brightness)
 {
   if (decrease)
   {
@@ -691,259 +691,259 @@ void ProcessEncoderChange(bool decrease)
 {
   switch (menu)
   {
-    case BacklightRed:
+  case BacklightRed:
+  {
+    SetChanelBrightness(decrease, brightnessR);
+    EEPROM.write(menu, brightnessR);
+    break;
+  }
+  case BacklightBlue:
+  {
+    SetChanelBrightness(decrease, brightnessB);
+    EEPROM.write(menu, brightnessB);
+    break;
+  }
+  case BacklightGreen:
+  {
+    SetChanelBrightness(decrease, brightnessG);
+    EEPROM.write(menu, brightnessG);
+    break;
+  }
+  case DotSetup:
+  {
+    if (decrease)
+    {
+      if (++neonDotMode == MAX)
       {
-        SetChanelBrightness(decrease, brightnessR);
-        EEPROM.write(menu, brightnessR);
-        break;
+        neonDotMode = 0;
       }
-    case BacklightBlue:
+    }
+    else
+    {
+      if (neonDotMode-- == 0)
       {
-        SetChanelBrightness(decrease, brightnessB);
-        EEPROM.write(menu, brightnessB);
-        break;
+        neonDotMode = MAX - 1;
       }
-    case BacklightGreen:
-      {
-        SetChanelBrightness(decrease, brightnessG);
-        EEPROM.write(menu, brightnessG);
-        break;
-      }
-    case DotSetup:
-      {
-        if (decrease)
-        {
-          if (++neonDotMode == MAX)
-          {
-            neonDotMode = 0;
-          }
-        }
-        else
-        {
-          if (neonDotMode-- == 0)
-          {
-            neonDotMode = MAX - 1;
-          }
-        }
-        EEPROM.write(menu, neonDotMode);
-        break;
-      }
-    case BeepHourlyMode:
-      {
-        beepOnHour = !beepOnHour;
-        EEPROM.write(menu, beepOnHour);
-        break;
-      }
-    case SilentMode:
-      {
-        silentMode = !silentMode;
-        EEPROM.write(menu, silentMode);
-        break;
-      }
-    case SlotMachine:
-      {
-        slotMachineFrequency += (decrease ? 1 : -1);
-        slotMachineFrequency = (slotMachineFrequency < 1 ? 0 : slotMachineFrequency);
-        slotMachineFrequency = (slotMachineFrequency > slotMachineFrequencyMAX ? 0 : slotMachineFrequency);
-        EEPROM.write(menu, slotMachineFrequency);
-        break;
-      }
-    case SpinChangingNumbers:
-      {
-        scrollMode = (ScrollMode)(scrollMode + (decrease ? 1 : -1));
-        scrollMode = (scrollMode < 0 ? UPDATE : scrollMode);
-        scrollMode = (scrollMode > UPDATE ? SCROLL_NONE : scrollMode);
+    }
+    EEPROM.write(menu, neonDotMode);
+    break;
+  }
+  case BeepHourlyMode:
+  {
+    beepOnHour = !beepOnHour;
+    EEPROM.write(menu, beepOnHour);
+    break;
+  }
+  case SilentMode:
+  {
+    silentMode = !silentMode;
+    EEPROM.write(menu, silentMode);
+    break;
+  }
+  case SlotMachine:
+  {
+    slotMachineFrequency += (decrease ? 1 : -1);
+    slotMachineFrequency = (slotMachineFrequency < 1 ? 0 : slotMachineFrequency);
+    slotMachineFrequency = (slotMachineFrequency > slotMachineFrequencyMAX ? 0 : slotMachineFrequency);
+    EEPROM.write(menu, slotMachineFrequency);
+    break;
+  }
+  case SpinChangingNumbers:
+  {
+    scrollMode = (ScrollMode)(scrollMode + (decrease ? 1 : -1));
+    scrollMode = (scrollMode < 0 ? UPDATE : scrollMode);
+    scrollMode = (scrollMode > UPDATE ? SCROLL_NONE : scrollMode);
 
-        EEPROM.write(menu, scrollMode);
-        break;
-      }
-    case ColorAnimationMode:
-      {
-        animationMode = (RGBAnimationMode)(animationMode + (decrease ? 1 : -1));
-        animationMode = (animationMode < 0 ? RANDOM : animationMode);
-        animationMode = (animationMode > RANDOM ? ANIMATION_NONE : animationMode);
+    EEPROM.write(menu, scrollMode);
+    break;
+  }
+  case ColorAnimationMode:
+  {
+    animationMode = (RGBAnimationMode)(animationMode + (decrease ? 1 : -1));
+    animationMode = (animationMode < 0 ? RANDOM : animationMode);
+    animationMode = (animationMode > RANDOM ? ANIMATION_NONE : animationMode);
 
-        EEPROM.write(menu, animationMode);
-        SetBackgroundColor(brightnessR, brightnessG, brightnessB);
-        break;
-      }
-    case DateMode:
+    EEPROM.write(menu, animationMode);
+    SetBackgroundColor(brightnessR, brightnessG, brightnessB);
+    break;
+  }
+  case DateMode:
+  {
+    currentFormat = (DateFormat)(currentFormat + (decrease ? 1 : -1));
+    currentFormat = (currentFormat < 0 ? YYMMDD : currentFormat);
+    currentFormat = (currentFormat > YYMMDD ? DDMMYY : currentFormat);
+    EEPROM.write(menu, currentFormat);
+    break;
+  }
+  case HourModeSetup:
+  {
+    HoursMode12 = !HoursMode12;
+    EEPROM.write(menu, HoursMode12);
+    break;
+  }
+  case MinutesSetup:
+  {
+    uint8_t minute = now.minute();
+    if (decrease)
+    {
+      if (++minute == 60)
       {
-        currentFormat = (DateFormat)(currentFormat + (decrease ? 1 : -1));
-        currentFormat = (currentFormat < 0 ? YYMMDD : currentFormat);
-        currentFormat = (currentFormat > YYMMDD ? DDMMYY : currentFormat);
-        EEPROM.write(menu, currentFormat);
-        break;
+        minute = 0;
       }
-    case HourModeSetup:
-      {
-        HoursMode12 = !HoursMode12;
-        EEPROM.write(menu, HoursMode12);
-        break;
-      }
-    case MinutesSetup:
-      {
-        uint8_t minute = now.minute();
-        if (decrease)
-        {
-          if (++minute == 60)
-          {
-            minute = 0;
-          }
-        }
-        else
-        {
-          if (minute-- == 0)
-            minute = 59;
-        }
-        clock_.setMinute(minute);
-        break;
-      }
-    case SecondsSetup:
-      {
-        uint8_t second = now.second();
-        if (decrease)
-        {
-          if (++second == 60)
-            second = 0;
-        }
-        else
-        {
-          if (second-- == 0)
-            second = 59;
-        }
-        clock_.setSecond(second);
-        break;
-      }
-    case HoursSetup:
-      {
-        uint8_t hour = now.hour();
-        if (decrease)
-        {
-          if (++hour == 24)
-            hour = 0;
-        }
-        else
-        {
-          if (hour-- == 0)
-            hour = 23;
-        }
-        clock_.setHour(hour);
-        break;
-      }
-    case YearSetup:
-      {
-        uint8_t year = clock_.getYear();
-        year += (decrease ? 1 : -1);
-        clock_.setYear(year);
-        break;
-      }
-    case MonthSetup:
-      {
-        uint8_t month = now.month();
+    }
+    else
+    {
+      if (minute-- == 0)
+        minute = 59;
+    }
+    clock_.setMinute(minute);
+    break;
+  }
+  case SecondsSetup:
+  {
+    uint8_t second = now.second();
+    if (decrease)
+    {
+      if (++second == 60)
+        second = 0;
+    }
+    else
+    {
+      if (second-- == 0)
+        second = 59;
+    }
+    clock_.setSecond(second);
+    break;
+  }
+  case HoursSetup:
+  {
+    uint8_t hour = now.hour();
+    if (decrease)
+    {
+      if (++hour == 24)
+        hour = 0;
+    }
+    else
+    {
+      if (hour-- == 0)
+        hour = 23;
+    }
+    clock_.setHour(hour);
+    break;
+  }
+  case YearSetup:
+  {
+    uint8_t year = clock_.getYear();
+    year += (decrease ? 1 : -1);
+    clock_.setYear(year);
+    break;
+  }
+  case MonthSetup:
+  {
+    uint8_t month = now.month();
 
-        if (decrease)
-        {
-          if (++month == 13)
-            month = 1;
-        }
-        else
-        {
-          if (month-- == 1)
-            month = 12;
-        }
-        clock_.setMonth(month);
-        break;
-      }
-    case DaySetup:
-      {
-        uint8_t day = now.day();
+    if (decrease)
+    {
+      if (++month == 13)
+        month = 1;
+    }
+    else
+    {
+      if (month-- == 1)
+        month = 12;
+    }
+    clock_.setMonth(month);
+    break;
+  }
+  case DaySetup:
+  {
+    uint8_t day = now.day();
 
-        if (decrease)
-        {
-          if (++day == 32)
-            day = 1;
-        }
-        else
-        {
-          if (day-- == 1)
-            day = 31;
-        }
+    if (decrease)
+    {
+      if (++day == 32)
+        day = 1;
+    }
+    else
+    {
+      if (day-- == 1)
+        day = 31;
+    }
 
-        clock_.setDate(day);
-        break;
-      }
-    case SleepStart:
-      {
-        sleepHourStart += (decrease ? 1 : -1);
-        sleepHourStart = (sleepHourStart < 0 ? 24 : sleepHourStart);
-        sleepHourStart = (sleepHourStart > 24 ? 0 : sleepHourStart);
-        EEPROM.write(menu, sleepHourStart);
-        break;
-      }
-    case SleepEnd:
-      {
-        sleepHourEnd += (decrease ? 1 : -1);
-        sleepHourEnd = (sleepHourEnd < 0 ? 24 : sleepHourEnd);
-        sleepHourEnd = (sleepHourEnd > 24 ? 0 : sleepHourEnd);
-        EEPROM.write(menu, sleepHourEnd);
-        break;
-      }
-    case AlarmMode:
-      {
-        alarmModeEnabled = !alarmModeEnabled;
-        EEPROM.write(menu, alarmModeEnabled);
-        break;
-      }
-    case AlarmHour:
-      {
-        alarmHour += (decrease ? 1 : -1);
-        alarmHour = (alarmHour < 0 ? 24 : alarmHour);
-        alarmHour = (alarmHour > 24 ? 0 : alarmHour);
-        EEPROM.write(menu, alarmHour);
-        break;
-      }
-    case AlarmMinute:
-      {
-        alarmMinute += (decrease ? 1 : -1);
-        alarmMinute = (alarmMinute < 0 ? 60 : alarmMinute);
-        alarmMinute = (alarmMinute > 60 ? 0 : alarmMinute);
-        EEPROM.write(menu, alarmMinute);
-        break;
-      }
-    case ShowDate:
-      {
-        showDate = !showDate;
-        EEPROM.write(menu, showDate);
-        break;
-      }
-    case ActivateSensor:
-      {
-        sensorActivated = !sensorActivated;
-        EEPROM.write(menu, sensorActivated);
-        break;
-      }
-    case MotionSensorTime:
-      {
-        sensorTime += (decrease ? 1 : -1);
-        sensorTime = (sensorTime < 1 ? 1 : sensorTime);
-        sensorTime = (sensorTime > sensorTimeMAX ? 1 : sensorTime);
-        EEPROM.write(menu, sensorTime);
-        break;
-      }
-    case InternalTemperature:
-      {
-        break;
-      }
-    case FirmwareVersion:
-      {
-        break;
-      }
-    default:
-      {
-        SpinAllNumbers();
-        break;
-      }
+    clock_.setDate(day);
+    break;
+  }
+  case SleepStart:
+  {
+    sleepHourStart += (decrease ? 1 : -1);
+    sleepHourStart = (sleepHourStart < 0 ? 24 : sleepHourStart);
+    sleepHourStart = (sleepHourStart > 24 ? 0 : sleepHourStart);
+    EEPROM.write(menu, sleepHourStart);
+    break;
+  }
+  case SleepEnd:
+  {
+    sleepHourEnd += (decrease ? 1 : -1);
+    sleepHourEnd = (sleepHourEnd < 0 ? 24 : sleepHourEnd);
+    sleepHourEnd = (sleepHourEnd > 24 ? 0 : sleepHourEnd);
+    EEPROM.write(menu, sleepHourEnd);
+    break;
+  }
+  case AlarmMode:
+  {
+    alarmModeEnabled = !alarmModeEnabled;
+    EEPROM.write(menu, alarmModeEnabled);
+    break;
+  }
+  case AlarmHour:
+  {
+    alarmHour += (decrease ? 1 : -1);
+    alarmHour = (alarmHour < 0 ? 24 : alarmHour);
+    alarmHour = (alarmHour > 24 ? 0 : alarmHour);
+    EEPROM.write(menu, alarmHour);
+    break;
+  }
+  case AlarmMinute:
+  {
+    alarmMinute += (decrease ? 1 : -1);
+    alarmMinute = (alarmMinute < 0 ? 60 : alarmMinute);
+    alarmMinute = (alarmMinute > 60 ? 0 : alarmMinute);
+    EEPROM.write(menu, alarmMinute);
+    break;
+  }
+  case ShowDate:
+  {
+    showDate = !showDate;
+    EEPROM.write(menu, showDate);
+    break;
+  }
+  case ActivateSensor:
+  {
+    sensorActivated = !sensorActivated;
+    EEPROM.write(menu, sensorActivated);
+    break;
+  }
+  case MotionSensorTime:
+  {
+    sensorTime += (decrease ? 1 : -1);
+    sensorTime = (sensorTime < 1 ? 1 : sensorTime);
+    sensorTime = (sensorTime > sensorTimeMAX ? 1 : sensorTime);
+    EEPROM.write(menu, sensorTime);
+    break;
+  }
+  case InternalTemperature:
+  {
+    break;
+  }
+  case FirmwareVersion:
+  {
+    break;
+  }
+  default:
+  {
+    SpinAllNumbers();
+    break;
+  }
   }
 }
 
@@ -1009,27 +1009,27 @@ void SetDot()
 
   switch (neonDotMode)
   {
-    case Blink:
-      {
-        lightUp = (now.second() % 2 != 0);
-        break;
-      }
-    case PermanentON:
-      {
-        lightUp = true;
-        break;
-      }
-    case MotionSensorIndication:
-      {
-        lightUp = (analogRead(pinPirSensor) < 200 ? false : true);
-        break;
-      }
-    case Off:
-    default:
-      {
-        lightUp = false;
-        break;
-      }
+  case Blink:
+  {
+    lightUp = (now.second() % 2 != 0);
+    break;
+  }
+  case PermanentON:
+  {
+    lightUp = true;
+    break;
+  }
+  case MotionSensorIndication:
+  {
+    lightUp = (analogRead(pinPirSensor) < 200 ? false : true);
+    break;
+  }
+  case Off:
+  default:
+  {
+    lightUp = false;
+    break;
+  }
   }
 
   if (lightUp)
@@ -1052,39 +1052,39 @@ void DisplayDate(bool blink = false)
   {
     switch (menu)
     {
-      case YearSetup:
-        years = NUMBER_MAX;
-        break;
-      case MonthSetup:
-        months = NUMBER_MAX;
-        break;
-      case DaySetup:
-        days = NUMBER_MAX;
-        break;
-      default:
-        break;
+    case YearSetup:
+      years = NUMBER_MAX;
+      break;
+    case MonthSetup:
+      months = NUMBER_MAX;
+      break;
+    case DaySetup:
+      days = NUMBER_MAX;
+      break;
+    default:
+      break;
     }
   }
 
   switch (currentFormat)
   {
-    case DDMMYY:
-      {
-         DisplayThreeNumbers(days, months, years);
-        break;
-      }
-    case MMDDYY:
-      {
-        DisplayThreeNumbers(months, days, years);
-        break;
-      }
-    case YYMMDD:
-      {
-        DisplayThreeNumbers(years, months, days);
-        break;
-      }
-    default:
-      break;
+  case DDMMYY:
+  {
+    DisplayThreeNumbers(days, months, years);
+    break;
+  }
+  case MMDDYY:
+  {
+    DisplayThreeNumbers(months, days, years);
+    break;
+  }
+  case YYMMDD:
+  {
+    DisplayThreeNumbers(years, months, days);
+    break;
+  }
+  default:
+    break;
   }
 }
 
@@ -1113,13 +1113,12 @@ void ScrollFromTimeToDate()
       for (unsigned char j = 0; j < 2; ++j)
       {
         DisplayNumbers(
-          (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
-          (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
-          (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
-          (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
-          (k == 4) ? ((upperThird + i) % 10) : upperThird,
-          (k == 5) ? ((lowerThird + i) % 10) : lowerThird
-        );
+            (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
+            (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
+            (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
+            (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
+            (k == 4) ? ((upperThird + i) % 10) : upperThird,
+            (k == 5) ? ((lowerThird + i) % 10) : lowerThird);
         delayMicroseconds(1000);
       }
       if (MenuPressed())
@@ -1128,39 +1127,57 @@ void ScrollFromTimeToDate()
 
     switch (currentFormat)
     {
-      case DDMMYY:
-        {
-          if (k == 0) upperFirst = days / 10;
-          if (k == 1) lowerFirst = days % 10;
-          if (k == 2) upperSecond = months / 10;
-          if (k == 3) lowerSecond = months % 10;
-          if (k == 4) upperThird = years / 10;
-          if (k == 5) lowerThird = years % 10;
+    case DDMMYY:
+    {
+      if (k == 0)
+        upperFirst = days / 10;
+      if (k == 1)
+        lowerFirst = days % 10;
+      if (k == 2)
+        upperSecond = months / 10;
+      if (k == 3)
+        lowerSecond = months % 10;
+      if (k == 4)
+        upperThird = years / 10;
+      if (k == 5)
+        lowerThird = years % 10;
 
-          break;
-        }
-      case MMDDYY:
-        {
-          if (k == 0) upperFirst = months / 10;
-          if (k == 1) lowerFirst = months % 10;
-          if (k == 2) upperSecond = days / 10;
-          if (k == 3) lowerSecond = days % 10;
-          if (k == 4) upperThird = years / 10;
-          if (k == 5) lowerThird = years % 10;
+      break;
+    }
+    case MMDDYY:
+    {
+      if (k == 0)
+        upperFirst = months / 10;
+      if (k == 1)
+        lowerFirst = months % 10;
+      if (k == 2)
+        upperSecond = days / 10;
+      if (k == 3)
+        lowerSecond = days % 10;
+      if (k == 4)
+        upperThird = years / 10;
+      if (k == 5)
+        lowerThird = years % 10;
 
-          break;
-        }
-      case YYMMDD:
-        {
-          if (k == 0) upperFirst = years / 10;
-          if (k == 1) lowerFirst = years % 10;
-          if (k == 2) upperSecond = months / 10;
-          if (k == 3) lowerSecond = months % 10;
-          if (k == 4) upperThird = days / 10;
-          if (k == 5) lowerThird = days % 10;
+      break;
+    }
+    case YYMMDD:
+    {
+      if (k == 0)
+        upperFirst = years / 10;
+      if (k == 1)
+        lowerFirst = years % 10;
+      if (k == 2)
+        upperSecond = months / 10;
+      if (k == 3)
+        lowerSecond = months % 10;
+      if (k == 4)
+        upperThird = days / 10;
+      if (k == 5)
+        lowerThird = days % 10;
 
-          break;
-        }
+      break;
+    }
     }
 
     if (MenuPressed())
@@ -1178,41 +1195,41 @@ void ScrollFromTimeToDate()
 
   switch (currentFormat)
   {
-    case DDMMYY:
-      {
-        upperFirst = days / 10;
-        lowerFirst = days % 10;
-        upperSecond = months / 10;
-        lowerSecond = months % 10;
-        upperThird = years / 10;
-        lowerThird = years % 10;
+  case DDMMYY:
+  {
+    upperFirst = days / 10;
+    lowerFirst = days % 10;
+    upperSecond = months / 10;
+    lowerSecond = months % 10;
+    upperThird = years / 10;
+    lowerThird = years % 10;
 
-        break;
-      }
-    case MMDDYY:
-      {
-        upperFirst = months / 10;
-        lowerFirst = months % 10;
-        upperSecond = days / 10;
-        lowerSecond = days % 10;
-        upperThird = years / 10;
-        lowerThird = years % 10;
+    break;
+  }
+  case MMDDYY:
+  {
+    upperFirst = months / 10;
+    lowerFirst = months % 10;
+    upperSecond = days / 10;
+    lowerSecond = days % 10;
+    upperThird = years / 10;
+    lowerThird = years % 10;
 
-        break;
-      }
-    case YYMMDD:
-      {
-        upperFirst = years / 10;
-        lowerFirst = years % 10;
-        upperSecond = months / 10;
-        lowerSecond = months % 10;
-        upperThird = days / 10;
-        lowerThird = days % 10;
+    break;
+  }
+  case YYMMDD:
+  {
+    upperFirst = years / 10;
+    lowerFirst = years % 10;
+    upperSecond = months / 10;
+    lowerSecond = months % 10;
+    upperThird = days / 10;
+    lowerThird = days % 10;
 
-        break;
-      }
-    default:
-      break;
+    break;
+  }
+  default:
+    break;
   }
 
   hours = now.hour();
@@ -1226,25 +1243,30 @@ void ScrollFromTimeToDate()
       for (unsigned char j = 0; j < 2; ++j)
       {
         DisplayNumbers(
-          (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
-          (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
-          (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
-          (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
-          (k == 4) ? ((upperThird + i) % 10) : upperThird,
-          (k == 5) ? ((lowerThird + i) % 10) : lowerThird
-        );
+            (k == 0) ? ((upperFirst + i) % 10) : upperFirst,
+            (k == 1) ? ((lowerFirst + i) % 10) : lowerFirst,
+            (k == 2) ? ((upperSecond + i) % 10) : upperSecond,
+            (k == 3) ? ((lowerSecond + i) % 10) : lowerSecond,
+            (k == 4) ? ((upperThird + i) % 10) : upperThird,
+            (k == 5) ? ((lowerThird + i) % 10) : lowerThird);
         delayMicroseconds(1000);
       }
       if (MenuPressed())
         break;
     }
 
-    if (k == 0) upperFirst = hours / 10;
-    if (k == 1) lowerFirst = hours % 10;
-    if (k == 2) upperSecond = minutes / 10;
-    if (k == 3) lowerSecond = minutes % 10;
-    if (k == 4) upperThird = seconds / 10;
-    if (k == 5) lowerThird = seconds % 10;
+    if (k == 0)
+      upperFirst = hours / 10;
+    if (k == 1)
+      lowerFirst = hours % 10;
+    if (k == 2)
+      upperSecond = minutes / 10;
+    if (k == 3)
+      lowerSecond = minutes % 10;
+    if (k == 4)
+      upperThird = seconds / 10;
+    if (k == 5)
+      lowerThird = seconds % 10;
 
     if (MenuPressed())
       break;
@@ -1292,15 +1314,17 @@ void DisplayTime(bool blink = false)
   {
     switch (menu)
     {
-      case MinutesSetup:
-        minutes = NUMBER_MAX;
-        break;
-      case HoursSetup:
-        hours = NUMBER_MAX;
-        break;
-      case SecondsSetup:
-        seconds = NUMBER_MAX;
-        break;
+    case MinutesSetup:
+      minutes = NUMBER_MAX;
+      break;
+    case HoursSetup:
+      hours = NUMBER_MAX;
+      break;
+    case SecondsSetup:
+      seconds = NUMBER_MAX;
+      break;
+    default:
+      break;
     }
   }
 
@@ -1313,81 +1337,81 @@ void ProcessMenu()
 
   switch (menu)
   {
-    case HoursSetup:
-    case MinutesSetup:
-    case SecondsSetup:
-      DisplayTime(blink);
-      break;
-    case YearSetup:
-    case MonthSetup:
-    case DaySetup:
-      DisplayDate(blink);
-      break;
-    case SleepStart:
-      DisplayThreeNumbers((byte)menu, blink ? NUMBER_MAX : sleepHourStart, sleepHourEnd);
-      break;
-    case SleepEnd:
-      DisplayThreeNumbers((byte)menu, sleepHourStart, blink ? NUMBER_MAX : sleepHourEnd);
-      break;
-    case BacklightRed:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : (brightnessR / brightnessStep));
-      break;
-    case BacklightGreen:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : (brightnessG / brightnessStep));
-      break;
-    case BacklightBlue:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : (brightnessB / brightnessStep));
-      break;
-    case DotSetup:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : neonDotMode);
-      break;
-    case BeepHourlyMode:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : beepOnHour);
-      break;
-    case SlotMachine:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : slotMachineFrequency);
-      break;
-    case SpinChangingNumbers:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : scrollMode);
-      break;
-    case ColorAnimationMode:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : animationMode);
-      break;
-    case DateMode:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : currentFormat);
-      break;
-    case HourModeSetup:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : HoursMode12);
-      break;
-    case AlarmMode:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : alarmModeEnabled);
-      break;
-    case AlarmHour:
-      DisplayThreeNumbers((byte)menu, blink ? NUMBER_MAX : alarmHour, alarmMinute);
-      break;
-    case AlarmMinute:
-      DisplayThreeNumbers((byte)menu, alarmHour, blink ? NUMBER_MAX : alarmMinute);
-      break;
-    case ShowDate:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : showDate);
-      break;
-    case ActivateSensor:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : sensorActivated);
-      break;
-    case MotionSensorTime:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : sensorTime);
-      break;
-    case SilentMode:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : silentMode);
-      break;
-    case InternalTemperature:
-      DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : clock_.getTemperature());
-      break;
-    case FirmwareVersion:
-      DisplayThreeNumbers((byte)menu, blink ? NUMBER_MAX : MAJOR, blink ? NUMBER_MAX : MINOR);
-      break;
-    default:
-      break;
+  case HoursSetup:
+  case MinutesSetup:
+  case SecondsSetup:
+    DisplayTime(blink);
+    break;
+  case YearSetup:
+  case MonthSetup:
+  case DaySetup:
+    DisplayDate(blink);
+    break;
+  case SleepStart:
+    DisplayThreeNumbers((byte)menu, blink ? NUMBER_MAX : sleepHourStart, sleepHourEnd);
+    break;
+  case SleepEnd:
+    DisplayThreeNumbers((byte)menu, sleepHourStart, blink ? NUMBER_MAX : sleepHourEnd);
+    break;
+  case BacklightRed:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : (brightnessR / brightnessStep));
+    break;
+  case BacklightGreen:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : (brightnessG / brightnessStep));
+    break;
+  case BacklightBlue:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : (brightnessB / brightnessStep));
+    break;
+  case DotSetup:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : neonDotMode);
+    break;
+  case BeepHourlyMode:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : beepOnHour);
+    break;
+  case SlotMachine:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : slotMachineFrequency);
+    break;
+  case SpinChangingNumbers:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : scrollMode);
+    break;
+  case ColorAnimationMode:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : animationMode);
+    break;
+  case DateMode:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : currentFormat);
+    break;
+  case HourModeSetup:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : HoursMode12);
+    break;
+  case AlarmMode:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : alarmModeEnabled);
+    break;
+  case AlarmHour:
+    DisplayThreeNumbers((byte)menu, blink ? NUMBER_MAX : alarmHour, alarmMinute);
+    break;
+  case AlarmMinute:
+    DisplayThreeNumbers((byte)menu, alarmHour, blink ? NUMBER_MAX : alarmMinute);
+    break;
+  case ShowDate:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : showDate);
+    break;
+  case ActivateSensor:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : sensorActivated);
+    break;
+  case MotionSensorTime:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : sensorTime);
+    break;
+  case SilentMode:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : silentMode);
+    break;
+  case InternalTemperature:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : clock_.getTemperature());
+    break;
+  case FirmwareVersion:
+    DisplayThreeNumbers((byte)menu, blink ? NUMBER_MAX : MAJOR, blink ? NUMBER_MAX : MINOR);
+    break;
+  default:
+    break;
   }
 
   if (iterationsShowed > (iterationsDimmDigits * 2))
@@ -1430,8 +1454,8 @@ void ProcessButton()
 void ReadEncoder()
 {
   // Read encoder pins.
-  unsigned char encoder_A = (PINB & (1 << pinEncoderA));//digitalRead(encoderA);
-  unsigned char encoder_B = (PINB & (1 << pinEncoderB));//digitalRead(encoderB);
+  unsigned char encoder_A = (PINB & (1 << pinEncoderA)); // digitalRead(encoderA);
+  unsigned char encoder_B = (PINB & (1 << pinEncoderB)); // digitalRead(encoderB);
   if ((!encoder_A) && (encoder_A_prev))
   {
     timeToSleep = false;
@@ -1445,7 +1469,7 @@ void ReadEncoder()
     iterationSensor = sensorTime * iterationSensorStep;
   }
 
-  //Store value of A for next time.
+  // Store value of A for next time.
   encoder_A_prev = encoder_A;
 }
 //
@@ -1453,140 +1477,139 @@ void ReadIRCommand()
 {
   if (irrcv.decode(&res))
   {
-    timeToSleep = false;
-    RestoreBacklight();
-    fireAlarm = false;
+    bool wake = true;
 
     switch (res.value)
     {
-      case 0xF7C03F: // ON
-      case 16756815:
-        {
-          powerON = true;
-          Beep(50);
-          break;
-        }
-      case 0xF740BF: // OFF
-      case 16738455:
-        {
-          Beep(50);
-          powerON = false;
-          break;
-        }
-
-      case 16195807: // Red
-      case 16753245: // 1
-        {
-          SaveRGBColors(brightnessMAX, 0, 0);
-          Beep(50);
-          break;
-        }
-      case 16228447: // Green
-      case 16736925:
-        {
-          SaveRGBColors(0, brightnessMAX, 0);
-          Beep(50);
-          break;
-        }
-      case 16212127: // Blue
-      case 16769565:
-        {
-          SaveRGBColors(0, 0, brightnessMAX);
-          Beep(50);
-          break;
-        }
-      case 16720605: // 4
-        {
-          SaveRGBColors(brightnessMAX, brightnessMAX, 0);
-          Beep(50);
-          break;
-        }
-      case 16712445: // 5
-        {
-          SaveRGBColors(0, brightnessMAX, brightnessMAX);
-          Beep(50);
-          break;
-        }
-      case 16761405: // 6
-        {
-          SaveRGBColors(brightnessMAX, 0, brightnessMAX);
-          Beep(50);
-          break;
-        }
-      case 16769055: // 7
-        {
-          SaveRGBColors(brightnessMAX, brightnessMAX / 2, 0);
-          Beep(50);
-          break;
-        }
-      case 16754775: // 8
-        {
-          SaveRGBColors(brightnessMAX, 0, brightnessMAX / 2);
-          Beep(50);
-          break;
-        }
-      case 16748655: // 9
-        {
-          SaveRGBColors(brightnessMAX, brightnessMAX, brightnessMAX);
-          Beep(50);
-          break;
-        }
-
-      case 16750695: // 0 - no color
-        {
-          SaveRGBColors(0, 0, 0);
-          Beep(50);
-          break;
-        }
-        // Plus
-#ifdef IR_24_KEY
-      case 0xF7807F:
-      case 0xFFB847:
-#else
-      case 16734885:
-      case 16718055:
-#endif
-        {
-          Beep(50);
-          iterationsInMenu = 0;
-          ProcessEncoderChange(true);
-          break;
-        }
-        // Minus
-#ifdef IR_24_KEY
-      case 0xF700FF:
-      case 0xFF906F:
-#else
-      case 16716015:
-      case 16730805:
-#endif
-        {
-          Beep(50);
-          iterationsInMenu = 0;
-          ProcessEncoderChange(false);
-          break;
-        }
-        // W key (menu)
-#ifdef IR_24_KEY
-      case 0xF7E01F:
-      case 0xFFA857:
-#else
-      case 16726215:
-#endif
-        {
-          Beep(50);
-          iterationsInMenu = 0;
-
-          menu = (Menu)(menu + 1);
-          if (menu == MENU_MAX)
-          {
-            menu = MENU_NONE;
-          }
-          break;
-        }
+    case 0xF7C03F: // ON '#' key
+    case 16756815:
+    {
+      powerON = true;
+      break;
     }
-    // Receive the next value
+    case 0xF740BF: // OFF '*' key
+    case 16738455:
+    {
+      powerON = false;
+      wake = false;
+      Beep(50);
+      break;
+    }
 
+    case 16195807: // Red
+    case 16753245: // 1
+    {
+      SaveRGBColors(brightnessMAX, 0, 0);
+      break;
+    }
+    case 16228447: // Green
+    case 16736925:
+    {
+      SaveRGBColors(0, brightnessMAX, 0);
+      break;
+    }
+    case 16212127: // Blue
+    case 16769565:
+    {
+      SaveRGBColors(0, 0, brightnessMAX);
+      break;
+    }
+    case 16720605: // 4
+    {
+      SaveRGBColors(brightnessMAX, brightnessMAX, 0);
+      break;
+    }
+    case 16712445: // 5
+    {
+      SaveRGBColors(0, brightnessMAX, brightnessMAX);
+      break;
+    }
+    case 16761405: // 6
+    {
+      SaveRGBColors(brightnessMAX, 0, brightnessMAX);
+      break;
+    }
+    case 16769055: // 7
+    {
+      SaveRGBColors(brightnessMAX, brightnessMAX / 2, 0);
+      break;
+    }
+    case 16754775: // 8
+    {
+      SaveRGBColors(brightnessMAX, 0, brightnessMAX / 2);
+      break;
+    }
+    case 16748655: // 9
+    {
+      SaveRGBColors(brightnessMAX, brightnessMAX, brightnessMAX);
+      break;
+    }
+
+    case 16750695: // 0 - no color
+    {
+      SaveRGBColors(0, 0, 0);
+      break;
+    }
+    // Plus
+#ifdef IR_24_KEY
+    case 0xF7807F:
+    case 0xFFB847:
+#else
+    case 16734885:
+    case 16718055:
+#endif
+    {
+      iterationsInMenu = 0;
+      ProcessEncoderChange(true);
+      break;
+    }
+    // Minus
+#ifdef IR_24_KEY
+    case 0xF700FF:
+    case 0xFF906F:
+#else
+    case 16716015:
+    case 16730805:
+#endif
+    {
+      iterationsInMenu = 0;
+      ProcessEncoderChange(false);
+      break;
+    }
+    // W key (menu)
+#ifdef IR_24_KEY
+    case 0xF7E01F:
+    case 0xFFA857:
+#else
+    case 16726215:
+#endif
+    {
+      iterationsInMenu = 0;
+
+      menu = (Menu)(menu + 1);
+      if (menu == MENU_MAX)
+      {
+        menu = MENU_NONE;
+      }
+      break;
+    }
+    default:
+    {
+      wake = false;
+      break;
+    }
+    }
+
+    if (wake)
+    {
+      timeToSleep = false;
+      RestoreBacklight();
+      fireAlarm = false;
+      powerON = true;
+      Beep(50);
+    }
+
+    // Receive the next value
     irrcv.resume();
   }
 }
@@ -1595,23 +1618,23 @@ void ReadMotionSensor()
 {
   if (sensorActivated)
   {
-    if (iterationSensor < 0)
+    if (analogRead(pinPirSensor) < 200)
     {
-      iterationSensor = 0;
-
-      if (analogRead(pinPirSensor) < 200)
-      {
-        timeToSleep = true;
-      }
-      else
-      {
-        timeToSleep = false;
-        RestoreBacklight();
-        iterationSensor = sensorTime * iterationSensorStep;
-      }
+        iterationSensor--;
+        if (iterationSensor < 0)
+        {
+          timeToSleep = true;
+        }
     }
-
-    iterationSensor--;
+    else
+    {
+      if(timeToSleep)
+      {
+        RestoreBacklight();
+      }
+      timeToSleep = false;
+      iterationSensor = sensorTime * iterationSensorStep;
+    }
   }
 }
 
