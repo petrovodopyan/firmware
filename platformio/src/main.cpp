@@ -51,9 +51,6 @@ const int sensorTimeMAX = 5;
 
 Adafruit_NeoPixel pixels(PIXELS, pinRGB, NEO_GRB + NEO_KHZ800);
 
-// #define IR_24_KEY
-#define IR_17_KEY
-
 const float brightnessStep = 5;
 const float brightnessMAX = 150;
 unsigned char brightnessR = 0;
@@ -94,9 +91,6 @@ int alarmMinute = 30;
 RTClib rtc;
 DateTime now;
 DS3231 clock_;
-
-IRrecv irrcv(pinIR);
-decode_results res;
 
 enum DotMode
 {
@@ -660,7 +654,7 @@ void setup()
   RestoreBacklight();
 
   // Start IR receiver.
-  irrcv.enableIRIn();
+  IrReceiver.begin(pinIR, ENABLE_LED_FEEDBACK);
 
   menu = Menu::MENU_NONE;
 
@@ -1305,9 +1299,16 @@ void DisplayTime(bool blink = false)
     return;
   }
 
-  if (HoursMode12 && hours > 12)
+  if (HoursMode12)
   {
-    hours -= 12;
+    if (hours == 0)
+    {
+      hours = 12;
+    }
+    else if (hours > 12)
+    {
+      hours -= 12;
+    }
   }
 
   if (blink)
@@ -1475,142 +1476,124 @@ void ReadEncoder()
 //
 void ReadIRCommand()
 {
-  if (irrcv.decode(&res))
+  if (IrReceiver.decode())
   {
-    bool wake = true;
+    if (IrReceiver.decodedIRData.protocol == NEC &&
+        !(IrReceiver.decodedIRData.flags & (IRDATA_FLAGS_IS_AUTO_REPEAT | IRDATA_FLAGS_IS_REPEAT)))
+    {
+      bool wake = true;
 
-    switch (res.value)
-    {
-    case 0xF7C03F: // ON '#' key
-    case 16756815:
-    {
-      powerON = true;
-      break;
-    }
-    case 0xF740BF: // OFF '*' key
-    case 16738455:
-    {
-      powerON = false;
-      wake = false;
-      Beep(50);
-      break;
-    }
-
-    case 16195807: // Red
-    case 16753245: // 1
-    {
-      SaveRGBColors(brightnessMAX, 0, 0);
-      break;
-    }
-    case 16228447: // Green
-    case 16736925:
-    {
-      SaveRGBColors(0, brightnessMAX, 0);
-      break;
-    }
-    case 16212127: // Blue
-    case 16769565:
-    {
-      SaveRGBColors(0, 0, brightnessMAX);
-      break;
-    }
-    case 16720605: // 4
-    {
-      SaveRGBColors(brightnessMAX, brightnessMAX, 0);
-      break;
-    }
-    case 16712445: // 5
-    {
-      SaveRGBColors(0, brightnessMAX, brightnessMAX);
-      break;
-    }
-    case 16761405: // 6
-    {
-      SaveRGBColors(brightnessMAX, 0, brightnessMAX);
-      break;
-    }
-    case 16769055: // 7
-    {
-      SaveRGBColors(brightnessMAX, brightnessMAX / 2, 0);
-      break;
-    }
-    case 16754775: // 8
-    {
-      SaveRGBColors(brightnessMAX, 0, brightnessMAX / 2);
-      break;
-    }
-    case 16748655: // 9
-    {
-      SaveRGBColors(brightnessMAX, brightnessMAX, brightnessMAX);
-      break;
-    }
-
-    case 16750695: // 0 - no color
-    {
-      SaveRGBColors(0, 0, 0);
-      break;
-    }
-    // Plus
-#ifdef IR_24_KEY
-    case 0xF7807F:
-    case 0xFFB847:
-#else
-    case 16734885:
-    case 16718055:
-#endif
-    {
-      iterationsInMenu = 0;
-      ProcessEncoderChange(true);
-      break;
-    }
-    // Minus
-#ifdef IR_24_KEY
-    case 0xF700FF:
-    case 0xFF906F:
-#else
-    case 16716015:
-    case 16730805:
-#endif
-    {
-      iterationsInMenu = 0;
-      ProcessEncoderChange(false);
-      break;
-    }
-    // W key (menu)
-#ifdef IR_24_KEY
-    case 0xF7E01F:
-    case 0xFFA857:
-#else
-    case 16726215:
-#endif
-    {
-      iterationsInMenu = 0;
-
-      menu = (Menu)(menu + 1);
-      if (menu == MENU_MAX)
+      switch (IrReceiver.decodedIRData.command)
       {
-        menu = MENU_NONE;
+      case 13: // ON '#' key
+      {
+        powerON = true;
+        break;
       }
-      break;
-    }
-    default:
-    {
-      wake = false;
-      break;
-    }
-    }
+      case 22: // OFF '*' key
+      {
+        Beep(50);
+        powerON = false;
+        wake = false;
+        break;
+      }
+      case 69: // Red '1' key
+      {
+        SaveRGBColors(brightnessMAX, 0, 0);
+        break;
+      }
+      case 70: // Green '2' key
+      {
+        SaveRGBColors(0, brightnessMAX, 0);
+        break;
+      }
+      case 71: // Blue '3' key
+      {
+        SaveRGBColors(0, 0, brightnessMAX);
+        break;
+      }
+      case 68: // 4
+      {
+        SaveRGBColors(brightnessMAX, brightnessMAX, 0);
+        break;
+      }
+      case 64: // 5
+      {
+        SaveRGBColors(0, brightnessMAX, brightnessMAX);
+        break;
+      }
+      case 67: // 6
+      {
+        SaveRGBColors(brightnessMAX, 0, brightnessMAX);
+        break;
+      }
+      case 7: // 7
+      {
+        SaveRGBColors(brightnessMAX, brightnessMAX / 2, 0);
+        break;
+      }
+      case 21: // 8
+      {
+        SaveRGBColors(brightnessMAX, 0, brightnessMAX / 2);
+        break;
+      }
+      case 9: // 9
+      {
+        SaveRGBColors(brightnessMAX, brightnessMAX, brightnessMAX);
+        break;
+      }
+      case 25: // 0 - no color
+      {
+        SaveRGBColors(0, 0, 0);
+        break;
+      }
+      // Plus arrows
+      case 24:
+      case 90:
+      {
+        iterationsInMenu = 0;
+        ProcessEncoderChange(true);
+        break;
+      }
+      // Minus arrows
+      case 8:
+      case 82:
+      {
+        iterationsInMenu = 0;
+        ProcessEncoderChange(false);
+        break;
+      }
+      // OK key (menu)
+      case 28:
+      {
+        iterationsInMenu = 0;
 
-    if (wake)
-    {
-      timeToSleep = false;
-      RestoreBacklight();
-      fireAlarm = false;
-      powerON = true;
-      Beep(50);
+        menu = (Menu)(menu + 1);
+        if (menu == MENU_MAX)
+        {
+          menu = MENU_NONE;
+        }
+        break;
+      }
+      default:
+      {
+        wake = false;
+        break;
+      }
+      }
+
+      if (wake)
+      {
+        timeToSleep = false;
+        RestoreBacklight();
+        fireAlarm = false;
+        powerON = true;
+        Beep(50);
+      }
     }
 
     // Receive the next value
-    irrcv.resume();
+    IrReceiver.resume();
   }
 }
 
