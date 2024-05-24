@@ -47,7 +47,7 @@ const int sensorTimeMAX = 5;
 
 // Version
 #define MAJOR 1
-#define MINOR 19
+#define MINOR 20
 
 Adafruit_NeoPixel pixels(PIXELS, pinRGB, NEO_GRB + NEO_KHZ800);
 
@@ -96,10 +96,18 @@ enum DotMode
 {
   Blink = 0,
   PermanentON,
-  Off,
+  PermanentOff,
   MotionSensorIndication,
   MAX
 };
+
+enum SecondsDisplayMode
+{
+  Normal = 0,
+  Off,
+  Zeros,
+  SECONDS_MAX
+} secondsMode;
 
 enum DateFormat
 {
@@ -164,6 +172,7 @@ enum Menu
   ActivateSensor,
 
   SilentMode,
+  SecondsMode,
   InternalTemperature,
   FirmwareVersion,
 
@@ -606,6 +615,13 @@ void ReadSettings()
   {
     alarmMinute = 30;
   }
+
+  secondsMode = (SecondsDisplayMode)EEPROM.read(SecondsMode);
+
+  if (secondsMode >= SecondsDisplayMode::SECONDS_MAX)
+  {
+    secondsMode = SecondsDisplayMode::Normal;
+  }
 }
 
 void setup()
@@ -925,6 +941,14 @@ void ProcessEncoderChange(bool decrease)
     EEPROM.write(menu, sensorTime);
     break;
   }
+  case SecondsMode:
+  {
+    secondsMode = (SecondsDisplayMode)(secondsMode + (decrease ? 1 : -1));
+    secondsMode = (secondsMode < 0 ? Normal : secondsMode);
+    secondsMode = (secondsMode >= SECONDS_MAX ? Zeros : secondsMode);
+    EEPROM.write(menu, secondsMode);
+    break;
+  }
   case InternalTemperature:
   {
     break;
@@ -1018,7 +1042,7 @@ void SetDot()
     lightUp = (analogRead(pinPirSensor) < 200 ? false : true);
     break;
   }
-  case Off:
+  case PermanentOff:
   default:
   {
     lightUp = false;
@@ -1172,6 +1196,8 @@ void ScrollFromTimeToDate()
 
       break;
     }
+    default:
+    break;
     }
 
     if (MenuPressed())
@@ -1329,6 +1355,22 @@ void DisplayTime(bool blink = false)
     }
   }
 
+  // Seconds display mode
+  if (menu == Menu::MENU_NONE)
+  {
+    switch (secondsMode)
+    {
+    case Off:
+      seconds = NUMBER_MAX;
+      break;
+    case Zeros:
+      seconds = 0;
+      break;
+    default:
+      break;
+    }
+  }
+
   DisplayThreeNumbers(hours, minutes, seconds, (menu != MENU_NONE) ? SCROLL_NONE : scrollMode);
 }
 
@@ -1404,6 +1446,9 @@ void ProcessMenu()
     break;
   case SilentMode:
     DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : silentMode);
+    break;
+  case SecondsMode:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : secondsMode);
     break;
   case InternalTemperature:
     DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : clock_.getTemperature());
