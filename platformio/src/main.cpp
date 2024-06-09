@@ -670,7 +670,7 @@ void setup()
   RestoreBacklight();
 
   // Start IR receiver.
-  IrReceiver.begin(pinIR, ENABLE_LED_FEEDBACK);
+  IrReceiver.begin(pinIR, DISABLE_LED_FEEDBACK);
 
   menu = Menu::MENU_NONE;
 
