@@ -70,7 +70,7 @@ bool HoursMode12 = false;
 bool showDate = true;
 bool sensorActivated = true;
 
-bool timeToSleep = false;
+bool motionPowerON = false;
 bool countDownMode = false;
 
 int iterationsInMenu = 0;
@@ -1476,17 +1476,16 @@ void ProcessButton()
       pressed = false;
       menu = MENU_NONE;
       iterationsButtonPressed = 0;
-      // timeToSleep = true;
     }
   }
-  else if (pressed && !timeToSleep)
+  else if (pressed)
   {
     iterationsButtonPressed = 0;
     iterationsInMenu = 0;
     pressed = false;
     fireAlarm = false;
+    powerON = true;
 
-    RestoreBacklight();
     Beep(50);
 
     menu = (Menu)(menu + 1);
@@ -1504,9 +1503,7 @@ void ReadEncoder()
   unsigned char encoder_B = (PINB & (1 << pinEncoderB)); // digitalRead(encoderB);
   if ((!encoder_A) && (encoder_A_prev))
   {
-    timeToSleep = false;
     powerON = true;
-    RestoreBacklight();
     fireAlarm = false;
     iterationsButtonPressed = 0;
     iterationsInMenu = 0;
@@ -1629,8 +1626,6 @@ void ReadIRCommand()
 
       if (wake)
       {
-        timeToSleep = false;
-        RestoreBacklight();
         fireAlarm = false;
         powerON = true;
         Beep(50);
@@ -1651,16 +1646,12 @@ void ReadMotionSensor()
         iterationSensor--;
         if (iterationSensor < 0)
         {
-          timeToSleep = true;
+          motionPowerON = false;
         }
     }
     else
     {
-      if(timeToSleep)
-      {
-        RestoreBacklight();
-      }
-      timeToSleep = false;
+      motionPowerON = true;
       iterationSensor = sensorTime * iterationSensorStep;
     }
   }
@@ -1676,18 +1667,15 @@ void loop()
   ReadMotionSensor();
   CheckAlarm();
 
+  // Check sleep timer.
   if (now.second() == 30 && (now.minute() % 2) == 0)
   {
-    timeToSleep = TimeToSleep();
-
-    if (!timeToSleep && powerON && !sensorActivated) // exit sleep timer
-    {
-      RestoreBacklight();
-    }
+    powerON = !TimeToSleep();
   }
 
-  if (timeToSleep || !powerON)
+  if (!powerON || (!motionPowerON && sensorActivated))
   {
+    // Shut the tubes & LEDs & HV power supply OFF.
     pressed = false;
     DimmDot();
     pixels.clear();
@@ -1695,6 +1683,10 @@ void loop()
     digitalWrite(pin12VSwitch, LOW);
 
     return;
+  }
+  else if (powerON || (motionPowerON && sensorActivated))
+  {
+    RestoreBacklight();
   }
 
   SetDot();
