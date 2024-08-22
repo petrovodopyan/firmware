@@ -189,7 +189,7 @@ void Beep(int size)
 
 bool MenuPressed()
 {
-  return ((PIND & (1 << pinButton)) == 0);
+  return !digitalReadFast(pinButton);
 }
 
 void SetBackgroundColor(unsigned char red, unsigned char green, unsigned char blue)
@@ -312,15 +312,15 @@ void shift5812PJ(uint8_t dataByte)
 
     if (bit)
     {
-      PORTC |= 1 << 0; // digitalWrite(pinSDI, HIGH);
+      digitalWriteFast(pinSDI, HIGH);
     }
     else
     {
-      PORTC &= ~(1 << 0); // digitalWrite(pinSDI, LOW);
+      digitalWriteFast(pinSDI, LOW);
     }
 
-    PORTC |= 1 << 1;    // digitalWrite(pinCLK, HIGH);
-    PORTC &= ~(1 << 1); // digitalWrite(pinCLK, LOW);
+    digitalWriteFast(pinCLK, HIGH);
+    digitalWriteFast(pinCLK, LOW);
   }
 }
 
@@ -356,17 +356,17 @@ void writeTwoNumbers(unsigned char left, unsigned char right, unsigned char anod
     byte3 &= ~(1 << 3);
   }
 
-  PORTD &= ~(1 << 6); // digitalWrite(pinLE, LOW);
+  digitalWriteFast(pinLE, LOW);
 
   shift5812PJ(byte3);
   shift5812PJ(byte2);
   shift5812PJ(byte1);
 
-  PORTD |= 1 << 6; // digitalWrite(pinLE, HIGH);
+  digitalWriteFast(pinLE, HIGH);
 
-  PORTD |= 1 << anode; // digitalWrite(anode, HIGH);
+  digitalWriteFast(anode, HIGH);
   delay(1);
-  PORTD &= ~(1 << anode); // digitalWrite(anode, LOW);
+  digitalWriteFast(anode, LOW);
   delay(1);
 }
 
@@ -633,6 +633,7 @@ void setup()
   pinMode(pinBLNK, OUTPUT);
   pinMode(pin12VSwitch, OUTPUT);
 
+  // High voltage PSU switch.
   digitalWrite(pin12VSwitch, HIGH);
 
   // Anode pins.
@@ -654,8 +655,7 @@ void setup()
   PORTB |= (1 << pinEncoderB); // turn on pull-up resistor
 
   // Button pin.
-  DDRD &= ~(1 << pinButton);
-  PORTD |= (1 << pinButton); // turn on pull-up resistor
+  pinMode(pinButton, INPUT_PULLUP);
 
   Wire.begin();
 
@@ -1018,7 +1018,7 @@ bool TimeToSleep()
 
 void DimmDot()
 {
-  PORTB &= ~(1 << 2);
+  digitalWriteFast(pinDot, LOW);
 }
 
 void SetDot()
@@ -1052,11 +1052,11 @@ void SetDot()
 
   if (lightUp)
   {
-    PORTB |= 1 << 2;
+    digitalWriteFast(pinDot, HIGH);
   }
   else
   {
-    PORTB &= ~(1 << 2);
+    digitalWriteFast(pinDot, LOW);
   }
 }
 
