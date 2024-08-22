@@ -88,6 +88,8 @@ bool alarmModeEnabled = false;
 int alarmHour = 7;
 int alarmMinute = 30;
 
+bool IRRemoteActivated = true;
+
 RTClib rtc;
 DateTime now;
 DS3231 clock_;
@@ -173,6 +175,9 @@ enum Menu
 
   SilentMode,
   SecondsMode,
+
+  IRRemoteMode,
+
   InternalTemperature,
   FirmwareVersion,
 
@@ -622,6 +627,8 @@ void ReadSettings()
   {
     secondsMode = SecondsDisplayMode::Normal;
   }
+
+  IRRemoteActivated = EEPROM.read(IRRemoteMode);
 }
 
 void setup()
@@ -947,6 +954,12 @@ void ProcessEncoderChange(bool decrease)
     secondsMode = (secondsMode < 0 ? Normal : secondsMode);
     secondsMode = (secondsMode >= SECONDS_MAX ? Zeros : secondsMode);
     EEPROM.write(menu, secondsMode);
+    break;
+  }
+  case IRRemoteMode:
+  {
+    IRRemoteActivated = !IRRemoteActivated;
+    EEPROM.write(menu, IRRemoteActivated);
     break;
   }
   case InternalTemperature:
@@ -1450,6 +1463,9 @@ void ProcessMenu()
   case SecondsMode:
     DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : secondsMode);
     break;
+  case IRRemoteMode:
+    DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : IRRemoteActivated);
+    break;
   case InternalTemperature:
     DisplayThreeNumbers((byte)menu, 0, blink ? NUMBER_MAX : clock_.getTemperature());
     break;
@@ -1518,6 +1534,9 @@ void ReadEncoder()
 //
 void ReadIRCommand()
 {
+  if (!IRRemoteActivated)
+    return;
+
   if (IrReceiver.decode())
   {
     if (IrReceiver.decodedIRData.protocol == NEC &&
