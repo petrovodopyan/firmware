@@ -923,8 +923,8 @@ void ProcessEncoderChange(bool decrease)
   case AlarmMinute:
   {
     alarmMinute += (decrease ? 1 : -1);
-    alarmMinute = (alarmMinute < 0 ? 60 : alarmMinute);
-    alarmMinute = (alarmMinute > 60 ? 0 : alarmMinute);
+    alarmMinute = (alarmMinute < 0 ? 59 : alarmMinute);
+    alarmMinute = (alarmMinute > 59 ? 0 : alarmMinute);
     EEPROM.write(menu, alarmMinute);
     break;
   }
