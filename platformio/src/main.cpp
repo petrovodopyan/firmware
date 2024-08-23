@@ -980,6 +980,9 @@ void ProcessEncoderChange(bool decrease)
 
 void CheckAlarm()
 {
+  const int alarmBeepCountMax = 120;
+  static int alarmBeepCount = alarmBeepCountMax;
+
   uint8_t hours = now.hour();
   uint8_t minutes = now.minute();
   uint8_t seconds = now.second();
@@ -990,6 +993,7 @@ void CheckAlarm()
       seconds == 0)
   {
     fireAlarm = true;
+    alarmBeepCount = alarmBeepCountMax;
   }
 
   if (fireAlarm)
@@ -999,6 +1003,11 @@ void CheckAlarm()
     if (second != now.second())
     {
       Beep(100);
+
+      if (alarmBeepCount-- == 0)
+      {
+        fireAlarm = false;
+      }
     }
 
     second = now.second();
