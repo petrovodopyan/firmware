@@ -47,7 +47,7 @@ const int sensorTimeMAX = 5;
 
 // Version
 #define MAJOR 1
-#define MINOR 20
+#define MINOR 21
 
 Adafruit_NeoPixel pixels(PIXELS, pinRGB, NEO_GRB + NEO_KHZ800);
 
@@ -71,6 +71,7 @@ bool showDate = true;
 bool sensorActivated = true;
 
 bool motionPowerON = false;
+bool IRPowerON = true;
 bool countDownMode = false;
 
 int iterationsInMenu = 0;
@@ -1658,6 +1659,7 @@ void ReadIRCommand()
         powerON = true;
         Beep(50);
       }
+      IRPowerON = wake;
     }
 
     // Receive the next value
@@ -1685,6 +1687,16 @@ void ReadMotionSensor()
   }
 }
 
+void SwitchOffRoutine()
+{
+  // Shut the tubes & LEDs & HV power supply OFF.
+  pressed = false;
+  DimmDot();
+  pixels.clear();
+  pixels.show();
+  digitalWrite(pin12VSwitch, LOW);
+}
+
 void loop()
 {
   now = RTClib::now();
@@ -1694,22 +1706,27 @@ void loop()
   ReadEncoder();
   ReadMotionSensor();
   CheckAlarm();
-
-  // Check sleep timer.
-  if (now.second() == 30 && (now.minute() % 2) == 0)
+  
+  // IR remote prevails all other power on/off methods.
+  if (!IRPowerON)
   {
-    powerON = !TimeToSleep();
+    SwitchOffRoutine();
+    return;
+  }
+
+  // If sleep timer is activated
+  if (sleepHourStart != sleepHourEnd)
+  {
+    // Check sleep timer.
+    if (now.second() == 30 && (now.minute() % 2) == 0)
+    {
+      powerON = !TimeToSleep();
+    }
   }
 
   if (!powerON || (!motionPowerON && sensorActivated))
   {
-    // Shut the tubes & LEDs & HV power supply OFF.
-    pressed = false;
-    DimmDot();
-    pixels.clear();
-    pixels.show();
-    digitalWrite(pin12VSwitch, LOW);
-
+    SwitchOffRoutine();
     return;
   }
   else if (powerON || (motionPowerON && sensorActivated))
